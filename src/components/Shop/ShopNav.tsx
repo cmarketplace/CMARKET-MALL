@@ -15,13 +15,14 @@ interface ShopNavProps {
   showBack?: boolean
 }
 
-/** 몰 안의 두 번째 줄 — 홈·전체 상품·정기구독·시즌·주문 내역. */
+/** 몰 안의 두 번째 줄 — 홈·전체 상품·정기구독·시즌·주문 내역·내 구독. */
 const SHOP_LINKS: { href: string; label: string; match: (pathname: string) => boolean }[] = [
   { href: '/shop', label: '홈', match: pathname => pathname === '/shop' },
   { href: '/shop/products', label: '전체 상품', match: pathname => pathname.startsWith('/shop/products') },
   { href: '/shop#subscribe', label: '정기구독', match: () => false },
   { href: '/shop#season', label: '시즌', match: () => false },
   { href: '/shop/orders', label: '주문 내역', match: pathname => pathname.startsWith('/shop/orders') },
+  { href: '/shop/subscriptions', label: '내 구독', match: pathname => pathname.startsWith('/shop/subscriptions') },
 ]
 
 export default function ShopNav({ showBack = false }: ShopNavProps) {

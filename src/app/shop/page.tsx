@@ -16,7 +16,9 @@ import {
 } from '@/lib/catalog'
 import type { StorefrontOrder } from '@/lib/order-types'
 import { listOrders, OrderError } from '@/lib/orders'
+import { semoListSubscriptionPlans, semoPointBalance } from '@/lib/semo-subscriptions'
 import { getShopMember } from '@/lib/shop-member'
+import type { SubscriptionPlan } from '@/lib/subscription-types'
 
 // «누가 보는가»(재주문 판)와 D-day 가 요청마다 다르다.
 export const dynamic = 'force-dynamic'
@@ -71,6 +73,19 @@ export default async function ShopHomePage() {
     }
   }
 
+  // 정기구독 상품(세모) + 포인트 잔액 힌트. 실패해도 히어로는 예상 산식으로 뜬다 — 섹션 단위 흡수.
+  let plans: SubscriptionPlan[] = []
+  let pointBalance: number | null = null
+  try {
+    ;[plans, pointBalance] = await Promise.all([
+      semoListSubscriptionPlans(),
+      member ? semoPointBalance(member.memberKey) : Promise.resolve(null),
+    ])
+  } catch (error) {
+    if (!(error instanceof OrderError)) throw error
+    console.error('[shop/home subscriptions]', error.status, error.message)
+  }
+
   return (
     <main className="min-h-screen bg-white">
       <ShopNav />
@@ -88,7 +103,7 @@ export default async function ShopHomePage() {
           </p>
         )}
 
-        <SubscriptionHero loggedIn={Boolean(member)} />
+        <SubscriptionHero loggedIn={Boolean(member)} plans={plans} pointBalance={pointBalance} />
 
         {feedFailed ? (
           <p role="alert" className="rounded-xl bg-[#FDECEC] px-4 py-3 text-sm leading-6 text-[#B3261E]">
