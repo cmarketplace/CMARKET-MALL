@@ -54,6 +54,10 @@ export function isDemoMode(): boolean {
  * 데모 신원의 등급. 기본은 `SHOP_DEMO_ROLE`(없으면 BUYER)이고, 쿠키가 있으면 그게 이긴다 —
  * `next dev` 는 디렉터리당 한 인스턴스라 발주기관·공급사 화면을 나란히 띄우려면 역할을
  * 요청 단위로 바꿀 수 있어야 한다.
+ *
+ * 공급기업 데모의 회원 id 는 `SHOP_DEMO_SUPPLIER_MEMBER`(없으면 `<SHOP_DEMO_MEMBER>-supplier`).
+ * 따로 두는 이유: 로컬 세모+가짜 씨마켓으로 결제까지 눌러 보려면 그쪽이 아는 회원 id
+ * (카드·포인트 지갑이 있는)여야 하고, 발주기관 id 와 같은 사람이 아니어야 한다.
  */
 export async function demoMember(): Promise<ShopMember | null> {
   const memberId = process.env.SHOP_DEMO_MEMBER?.trim()
@@ -63,7 +67,10 @@ export async function demoMember(): Promise<ShopMember | null> {
   const fromCookie = jar.get(DEMO_ROLE_COOKIE)?.value?.toUpperCase()
   const role = fromCookie || process.env.SHOP_DEMO_ROLE?.trim().toUpperCase() || 'BUYER'
   const tier = viewerTierOf(role, role === 'EMPLOYEE' ? 1000 : null)
-  const demoId = tier === 'FULL' ? memberId : `${memberId}-supplier`
+  const demoId =
+    tier === 'FULL'
+      ? memberId
+      : process.env.SHOP_DEMO_SUPPLIER_MEMBER?.trim() || `${memberId}-supplier`
   return {
     // 데모도 실제와 같은 모양의 키를 쓴다 — 모양이 다르면 데모에서만 통과하는 코드가 생긴다.
     memberKey: `${tier === 'FULL' ? 'BUYER' : 'SUPPLIER'}::${demoId}`,

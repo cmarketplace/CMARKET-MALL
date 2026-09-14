@@ -3,7 +3,14 @@ import { NextResponse } from 'next/server'
 import { toErrorResponse } from '@/lib/api-errors'
 import { createOrder, listOrders, OrderError } from '@/lib/orders'
 import { getShopMember } from '@/lib/shop-member'
-import type { OrderRoute, OrderShipTo, PaymentMethod } from '@/lib/order-types'
+import {
+  allowedPaymentMethods,
+  type CustomerType,
+  type OrderPaymentInput,
+  type OrderRoute,
+  type OrderShipTo,
+  type PaymentMethod,
+} from '@/lib/order-types'
 import type { StubOrderLine } from '@/lib/postpaid-mall-stub'
 import { isQuoteValid } from '@/lib/quote-types'
 import { getQuote } from '@/lib/quotes'
@@ -11,15 +18,20 @@ import { getQuote } from '@/lib/quotes'
 /**
  * 몰 주문 — 브라우저와 원장 사이의 유일한 통로.
  *
- *   1) **주문자** — 요청 본문이 아니라 **세션**에서. 열람은 공개몰이지만 주문은
- *      후불 계약의 당사자가 필요해서 익명일 수 없다(로그인 없으면 401).
+ *   1) **주문자** — 요청 본문이 아니라 **세션**에서. 주문은 계약·결제의 당사자가
+ *      필요해서 익명일 수 없다(로그인 없으면 401). 세션의 등급이 곧 고객 유형이다:
+ *      발주기관(FULL) / 공급기업(RESTRICTED).
  *   2) **배송지** — 이 몰은 모두 개방이라 고정 사업장 목록이 없다. 주문자가 적은
  *      주소를 받되 서버가 모양을 검증한다.
  *   3) **금액** — 스텁 단계에서는 화면 스냅샷 단가·배송비를 받아 서버가 합산하고,
- *      세모 연동 후에는 단가 자체를 받지 않는다(카탈로그가 재확정).
- *   4) **경로** — 씨마켓 안전결제(SAFE) / 공급사 직접 구매(DIRECT). 결제 수단은
- *      안전결제에만 있다(직접 구매는 공급사 계좌 후불).
- *   5) **견적서** — 견적번호가 오면 내 견적서인지·유효기간 안인지 확인한다.
+ *      세모 연동 후에는 단가 자체를 받지 않는다(카탈로그·견적서가 재확정).
+ *   4) **경로·결제수단** — 세모 규칙(`order-types.ts` `allowedPaymentMethods`)을 여기서
+ *      먼저 거른다. 공급기업은 안전결제 + 카드·포인트 선불만, 직접 구매는 후불만. 서버(세모)가
+ *      최종 판정이지만, 여기서 같은 문구로 400 을 내면 «화면은 막았는데 API 는 통과» 가 없다.
+ *   5) **카드 결제 입력** — 결제창에서 고른 씨마켓 저장카드 id(+잠금 카드면 비밀번호 6자리).
+ *      몰은 저장·로그하지 않고 세모로 넘긴다.
+ *   6) **견적서** — 견적번호가 오면 내 견적서인지·유효기간 안인지 확인한다. 세모가 그
+ *      견적서의 오퍼·단가로 잠근다(품목·수량이 다르면 세모가 400).
  */
 
 /** 한 번에 담을 수 있는 줄 수. 세모 주문 DTO 상한과 같은 값이다. */
@@ -32,6 +44,7 @@ interface OrderRequestBody {
   route?: unknown
   paymentMethod?: unknown
   quoteNo?: unknown
+  payment?: unknown
   shipping?: unknown
 }
 
@@ -104,9 +117,56 @@ function parseRoute(raw: unknown): OrderRoute {
   return raw === 'DIRECT' ? 'DIRECT' : 'SAFE'
 }
 
-function parsePaymentMethod(raw: unknown, route: OrderRoute): PaymentMethod | null {
-  if (route !== 'SAFE') return null
-  return raw === 'CARD' ? 'CARD' : 'TAX_INVOICE'
+function parsePaymentMethod(raw: unknown): PaymentMethod | null {
+  return raw === 'CARD' || raw === 'POINT' || raw === 'TAX_INVOICE' ? raw : null
+}
+
+/** 카드 입력 — id 는 양의 정수, 비밀번호는 숫자 6자리(세모 DTO 와 같은 검증). 모양이 아니면 문구를 돌려준다. */
+function parsePayment(raw: unknown): OrderPaymentInput | null | string {
+  if (raw === undefined || raw === null) return null
+  const value = raw as { cardId?: unknown; cardPassword?: unknown }
+  const cardId = Number(value.cardId)
+  if (!Number.isInteger(cardId) || cardId < 1) return '결제할 카드를 골라 주세요.'
+  const password = typeof value.cardPassword === 'string' ? value.cardPassword.trim() : ''
+  if (password && !/^\d{6}$/.test(password)) return '결제 확인 비밀번호는 숫자 6자리입니다.'
+  return { cardId, ...(password ? { cardPassword: password } : {}) }
+}
+
+/**
+ * 세모 `resolveOpenMallOrderTerms` 와 같은 표로 경로·결제수단을 확정한다.
+ * 규칙 밖의 조합은 세모가 내는 것과 같은 문구로 400 — 화면이 오래된 탭이어도 말이 같다.
+ */
+function resolveTerms(
+  customerType: CustomerType,
+  rawRoute: unknown,
+  rawMethod: unknown,
+): { route: OrderRoute; paymentMethod: PaymentMethod } | string {
+  const requestedRoute = parseRoute(rawRoute)
+  const requested = parsePaymentMethod(rawMethod)
+
+  if (customerType === 'COMPANY') {
+    if (requestedRoute !== 'SAFE') {
+      return '공급기업 주문은 씨마켓 구매대행(안전결제)으로만 받습니다 — 직접구매는 발주기관만 고를 수 있습니다.'
+    }
+    if (requested !== 'CARD' && requested !== 'POINT') {
+      return '공급기업 주문은 카드 또는 포인트 선불로만 결제할 수 있습니다(후불 불가).'
+    }
+    return { route: 'SAFE', paymentMethod: requested }
+  }
+
+  if (requestedRoute === 'DIRECT') {
+    if (requested && requested !== 'TAX_INVOICE') {
+      return '직접구매는 공급사별 세금계산서 후불입니다 — 카드·포인트 결제는 안전결제에서 고르세요.'
+    }
+    return { route: 'DIRECT', paymentMethod: 'TAX_INVOICE' }
+  }
+
+  // 발주기관이 결제수단을 안 보내면 후불 — 기관 구매의 기본값이자 화면의 기본 선택.
+  const paymentMethod = requested ?? 'TAX_INVOICE'
+  if (!allowedPaymentMethods(customerType, 'SAFE').includes(paymentMethod)) {
+    return '고를 수 없는 결제수단입니다.'
+  }
+  return { route: 'SAFE', paymentMethod }
 }
 
 export async function POST(request: Request) {
@@ -138,12 +198,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: shipTo }, { status: 400 })
   }
 
-  // 제한 고객(공급사)은 안전결제만 — 직접 구매는 계약서에 상대 공급사가 실린다.
-  const route = member.tier === 'FULL' ? parseRoute(body.route) : 'SAFE'
-  const paymentMethod = parsePaymentMethod(body.paymentMethod, route)
-  if (member.tier !== 'FULL') {
-    for (const line of lines) line.supplierName = null
+  // 발주기관(FULL) / 공급기업(RESTRICTED) — 세션 등급이 곧 고객 유형이다.
+  const customerType: CustomerType = member.tier === 'FULL' ? 'INSTITUTION' : 'COMPANY'
+  const terms = resolveTerms(customerType, body.route, body.paymentMethod)
+  if (typeof terms === 'string') {
+    return NextResponse.json({ message: terms }, { status: 400 })
   }
+  const { route, paymentMethod } = terms
+
+  // 공급기업 주문은 공급사를 고르지 않는다(세모가 최저가로 확정) — 이름·오퍼 지정을 지운다.
+  if (customerType === 'COMPANY') {
+    for (const line of lines) {
+      line.supplierName = null
+      line.offerId = null
+    }
+  }
+
+  const payment = paymentMethod === 'CARD' ? parsePayment(body.payment) : null
+  if (typeof payment === 'string') {
+    return NextResponse.json({ message: payment }, { status: 400 })
+  }
+  if (paymentMethod === 'CARD' && !payment) {
+    return NextResponse.json({ message: '결제할 카드를 골라 주세요.' }, { status: 400 })
+  }
+
   const shipping = Math.max(0, Math.round(Number(body.shipping) || 0))
 
   // 견적번호 — 내 것이어야 하고, 유효기간 안이어야 한다. 아니면 주문을 세우지 않는다:
@@ -176,6 +254,7 @@ export async function POST(request: Request) {
       route,
       paymentMethod,
       quoteNo,
+      payment,
       shipping,
     })
 

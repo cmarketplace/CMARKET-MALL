@@ -7,7 +7,14 @@
 
 import type { AssignedLine } from '@/lib/cart-combination'
 import type { CombinationMode } from '@/lib/cart-combination'
-import type { OrderRoute, OrderShipTo, PaymentMethod, StorefrontOrder } from '@/lib/order-types'
+import type {
+  OrderPaymentInput,
+  OrderRoute,
+  OrderShipTo,
+  PaymentMethod,
+  PaymentOptions,
+  StorefrontOrder,
+} from '@/lib/order-types'
 import type { StorefrontQuote } from '@/lib/quote-types'
 
 export interface PlacedOrder {
@@ -73,6 +80,8 @@ export async function placeOrder(input: {
   route: OrderRoute
   paymentMethod: PaymentMethod | null
   quoteNo: string | null
+  /** 카드 결제면 결제창에서 고른 씨마켓 저장카드(+잠금 카드면 비밀번호). */
+  payment: OrderPaymentInput | null
   shipping: number
 }): Promise<PlacedOrder> {
   const response = await fetch('/api/shop/orders', {
@@ -86,12 +95,25 @@ export async function placeOrder(input: {
   const payload = await readPayload<{ order?: PlacedOrder; message?: string }>(response)
 
   if (!response.ok || !payload?.order) {
-    // 서버가 준 문구를 그대로 보여 준다 — 배송지 형식 오류처럼 담당자가 고칠 수 있는
-    // 말이 여기 담긴다.
+    // 서버가 준 문구를 그대로 보여 준다 — 배송지 형식 오류·카드 거절·잔액 부족·연동 미설정처럼
+    // 담당자가 읽고 움직일 수 있는 말이 여기 담긴다(세모 402/400/503 문구 그대로).
     throw new Error(payload?.message ?? '주문을 등록하지 못했습니다.')
   }
 
   return payload.order
+}
+
+/** 결제창 재료 — 내 씨마켓 저장카드와 포인트 잔액. 실패 문구(연동 미설정 등)는 그대로 던진다. */
+export async function fetchPaymentOptions(): Promise<PaymentOptions> {
+  const response = await fetch('/api/shop/payment-options', { cache: 'no-store' })
+
+  if (response.status === 401) throw new LoginRequiredError()
+
+  const payload = await readPayload<PaymentOptions & { message?: string }>(response)
+  if (!response.ok || !payload || !Array.isArray(payload.cards)) {
+    throw new Error(payload?.message ?? '결제수단을 불러오지 못했습니다.')
+  }
+  return { cards: payload.cards, points: payload.points }
 }
 
 export async function cancelOrder(orderNo: string): Promise<StorefrontOrder> {
