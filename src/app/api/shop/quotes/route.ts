@@ -72,7 +72,7 @@ export async function POST(request: Request) {
         plan.frequencies.length - 1,
         Math.max(0, Number(body.frequencyIndex) || 0),
       )
-      const quote = createQuote({
+      const quote = await createQuote({
         memberId: member.memberKey,
         kind: 'SUBSCRIPTION',
         route: 'SAFE',
@@ -147,7 +147,7 @@ export async function POST(request: Request) {
       supplierName: line.offer.supplierName,
     }))
 
-    const quote = createQuote({
+    const quote = await createQuote({
       memberId: member.memberKey,
       kind: 'CART',
       route: member.tier === 'FULL' ? parseRoute(body.route) : 'SAFE',
@@ -167,5 +167,9 @@ export async function GET() {
   if (!member) {
     return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 })
   }
-  return NextResponse.json({ quotes: listQuotes(member.memberKey) })
+  try {
+    return NextResponse.json({ quotes: await listQuotes(member.memberKey) })
+  } catch (error) {
+    return toErrorResponse(error, '견적서 목록을 불러오지 못했습니다.')
+  }
 }

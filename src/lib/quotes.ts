@@ -11,18 +11,51 @@ import {
   type QuoteSubscription,
   type StorefrontQuote,
 } from '@/lib/quote-types'
+import { isSemoConfigured } from '@/lib/semo-api'
+import { semoCreateQuote, semoGetQuote, semoListQuotes } from '@/lib/semo-quotes'
 
 /**
- * 견적서 원장 — 몰이 발급하는 문서.
+ * 견적서 원장 — **세모 견적서 원장으로 가는 이음새.** (`orders.ts` 와 같은 모양)
  *
- * 세모 주문 파이프라인에는 «견적서» 축이 없다(몰 주문은 접수 즉시 자동매칭이다). 담당자가
- * 품의에 붙일 종이는 몰이 만든다 — 그래서 이 원장은 세모 키 유무와 무관하게 **항상 몰
- * 안에** 있다. 주문에는 `quoteNo` 로만 연결된다.
+ * `SEMO_API_BASE`/`SEMO_API_KEY` 가 채워진 환경에서는 세모가 정본이다(`semo-quotes.ts`):
+ * 견적번호·유효기간을 세모가 정하고, 단가를 카탈로그로 다시 확정해 금액까지 계산한 뒤
+ * 세모 DB 에 보관한다. 몰은 Vercel 서버리스라 인스턴스마다 메모리가 따로다 — 원장이 몰
+ * 안에 있으면 방금 받은 견적번호가 다음 요청에서 «없는 견적서» 가 된다.
  *
- * 저장: `var/quotes-stub.json` (.gitignore). 주문 스텁과 같은 구조 — 파일을 못 쓰는 환경에서는
- * 메모리로만 돈다. 견적서가 여러 인스턴스에 걸쳐 살아남아야 하는 시점이 오면 세모/씨마켓
- * 쪽에 견적 테이블을 두고 이 파일의 구현만 갈아 끼운다.
+ * 키가 없으면 로컬 스텁 원장이 자리를 지킨다(개발·데모): `var/quotes-stub.json`
+ * (.gitignore), 파일을 못 쓰는 환경에서는 메모리로만 돈다.
+ *
+ * 어느 쪽이든 주문에는 `quoteNo` 로만 연결된다. 소유는 세션의 memberKey(씨마켓 sub) 하나로
+ * 가르고, 남의 견적서는 «없는 견적서»(404)다.
  */
+
+export interface CreateQuoteInput {
+  memberId: string
+  kind: QuoteKind
+  route: OrderRoute | null
+  lines: QuoteLine[]
+  shipping: number
+  subscription: QuoteSubscription | null
+}
+
+export async function createQuote(input: CreateQuoteInput): Promise<StorefrontQuote> {
+  if (isSemoConfigured()) return semoCreateQuote(input)
+  return stubCreateQuote(input)
+}
+
+/** 내 견적서 목록(최신순). */
+export async function listQuotes(memberId: string): Promise<StorefrontQuote[]> {
+  if (isSemoConfigured()) return semoListQuotes(memberId)
+  return stubListQuotes(memberId)
+}
+
+/** 남의 견적서는 «없는 견적서» 다 — 주문과 같은 규칙. */
+export async function getQuote(memberId: string, quoteNo: string): Promise<StorefrontQuote> {
+  if (isSemoConfigured()) return semoGetQuote(memberId, quoteNo)
+  return stubGetQuote(memberId, quoteNo)
+}
+
+/* ── 로컬 스텁 원장 (세모 키 없음) ─────────────────────────────────────── */
 
 interface QuoteState {
   version: 1
@@ -70,16 +103,7 @@ function kstDateStamp(): string {
     .replace(/\D/g, '')
 }
 
-export interface CreateQuoteInput {
-  memberId: string
-  kind: QuoteKind
-  route: OrderRoute | null
-  lines: QuoteLine[]
-  shipping: number
-  subscription: QuoteSubscription | null
-}
-
-export function createQuote(input: CreateQuoteInput): StorefrontQuote {
+function stubCreateQuote(input: CreateQuoteInput): StorefrontQuote {
   const state = loadState()
 
   const amounts =
@@ -119,14 +143,13 @@ export function createQuote(input: CreateQuoteInput): StorefrontQuote {
   return quote
 }
 
-export function listQuotes(memberId: string): StorefrontQuote[] {
+function stubListQuotes(memberId: string): StorefrontQuote[] {
   return loadState()
     .quotes.filter(quote => quote.memberId === memberId)
     .reverse()
 }
 
-/** 남의 견적서는 «없는 견적서» 다 — 주문 스텁과 같은 규칙. */
-export function getQuote(memberId: string, quoteNo: string): StorefrontQuote {
+function stubGetQuote(memberId: string, quoteNo: string): StorefrontQuote {
   const quote = loadState().quotes.find(
     row => row.quoteNo === quoteNo && row.memberId === memberId,
   )

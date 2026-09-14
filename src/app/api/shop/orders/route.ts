@@ -151,7 +151,7 @@ export async function POST(request: Request) {
   const quoteNo = typeof body.quoteNo === 'string' && body.quoteNo ? body.quoteNo.trim() : null
   if (quoteNo) {
     try {
-      const quote = getQuote(member.memberKey, quoteNo)
+      const quote = await getQuote(member.memberKey, quoteNo)
       if (!isQuoteValid(quote)) {
         return NextResponse.json(
           { message: '견적서 유효기간이 지났습니다. 장바구니에서 견적서를 다시 발급해 주세요.' },
