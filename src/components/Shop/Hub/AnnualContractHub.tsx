@@ -6,6 +6,7 @@ import { Check } from 'lucide-react'
 
 import { ANNUAL_CONTRACT_TERMS, type AnnualContractRound } from '@/config/annual-contracts'
 import { formatKDate } from '@/lib/kdate'
+import type { PriceBenchmarkItem } from '@/lib/price-benchmark'
 import { topic } from '@/lib/korean'
 
 import {
@@ -26,7 +27,22 @@ const num = (n: number) => n.toLocaleString('ko-KR')
  * 공동구매와 달리 품목별로 쪼개지 않는다: 여기는 진행 막대가 없고, 운영자는 한 곳의 신청을
  * 한 장의 단가계약서로 회신한다.
  */
-export default function AnnualContractHub({ round, stub }: { round: AnnualContractRound; stub: boolean }) {
+interface BenchmarkView {
+  items: PriceBenchmarkItem[]
+  basisLabel: string
+  method: string
+}
+
+export default function AnnualContractHub({
+  round,
+  stub,
+  benchmark,
+}: {
+  round: AnnualContractRound
+  stub: boolean
+  /** 입찰 상한(인터넷 정상가). 스냅샷이 없으면 null */
+  benchmark: BenchmarkView | null
+}) {
   const [monthly, setMonthly] = useState<Record<string, string>>({})
   const [sites, setSites] = useState('1')
   const [address, setAddress] = useState('')
@@ -93,12 +109,14 @@ export default function AnnualContractHub({ round, stub }: { round: AnnualContra
             <thead className="bg-light-soft text-muted text-left text-xs">
               <tr>
                 <th className="px-4 py-3 font-medium">품목</th>
-                <th className="px-4 py-3 font-medium">낙찰 단가</th>
+                <th className="px-4 py-3 font-medium">낙찰 단가 · 입찰 상한</th>
                 <th className="w-40 px-4 py-3 font-medium">월 수량</th>
               </tr>
             </thead>
             <tbody>
-              {round.items.map(item => (
+              {round.items.map(item => {
+                const ceiling = benchmark?.items.find(entry => entry.key === item.key) ?? null
+                return (
                 <tr key={item.key} className="border-border border-t">
                   <td className="px-4 py-3">
                     <span className="text-text block font-semibold">{item.name}</span>
@@ -111,6 +129,13 @@ export default function AnnualContractHub({ round, stub }: { round: AnnualContra
                     {item.unitPrice !== null ? (
                       <span className="text-text font-semibold tabular-nums">
                         {num(item.unitPrice)}원<span className="text-muted text-xs font-normal"> / {item.unit}</span>
+                      </span>
+                    ) : ceiling ? (
+                      <span className="block">
+                        <span className="text-text block font-semibold tabular-nums">
+                          {num(ceiling.median)}원 미만
+                        </span>
+                        <span className="text-muted block text-[11px]">인터넷 정상가 · 낙찰 후 단가 공개</span>
                       </span>
                     ) : (
                       <span className="text-muted text-xs">입찰 후 공개</span>
@@ -130,11 +155,17 @@ export default function AnnualContractHub({ round, stub }: { round: AnnualContra
                     </span>
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>
         <p className="text-muted text-xs">신청 마감 {formatKDate(round.applyClosesAt)} · 마감 뒤 품목별 입찰 결과와 단가계약서를 담당자께 보내 드립니다.</p>
+        {benchmark && (
+          <p className="text-muted text-[11px] leading-5">
+            입찰 상한 = 인터넷 정상가({benchmark.basisLabel}). {benchmark.method}
+          </p>
+        )}
       </div>
 
       <div className="border-border space-y-4 rounded-2xl border bg-white p-5 lg:sticky lg:top-32 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">

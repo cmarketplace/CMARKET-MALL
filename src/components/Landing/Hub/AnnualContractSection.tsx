@@ -4,33 +4,33 @@ import { Check } from 'lucide-react'
 import { ANNUAL_CONTRACT_TERMS, type AnnualContractRound } from '@/config/annual-contracts'
 import { daysUntil, ddayLabel } from '@/config/seasons'
 import { formatKDate } from '@/lib/kdate'
-import { isPriceProven, type PriceCompareRow } from '@/lib/price-compare'
+import { isBenchmarkReady, type PriceBenchmarkSnapshot } from '@/lib/price-benchmark'
 
 import { RevealCard, RevealSection } from '../SectionReveal'
-import PriceProof from './PriceProof'
+import BenchmarkTable from './BenchmarkTable'
 import SectionHeading, { landingButtonClass } from './SectionHeading'
 
 /**
  * 연간 단가계약 — «세상 어디보다 저렴한 단가계약».
  *
- * 최상급은 **근거가 있을 때만** 선다(디자인 시스템 §2·§8). 근거 = `price-compare.json` 스냅샷에서
- * 같은 상품·부가세 포함으로 인터넷 최저가보다 몰이 싼 품목이 `PROOF_MIN_ITEMS`(price-compare.ts) 개 이상일 때.
- * 그때는 제목 바로 옆에 비교 표(출처 링크·기준일)를 함께 세운다. 근거가 없으면 사실만 적는
- * 예전 제목(«복사용지는 1년 단가 한 번으로»)으로 돌아간다.
+ * 제목의 근거는 몰의 지금 판매가가 아니라 **계약 방식**이다: 품목마다 인터넷 정상가(재고 떨이·한정 특가를
+ * 뺀 중간값)를 입찰 상한으로 두고, 그보다 싸게 부른 곳과만 1년 계약한다(약관 첫 줄). 그래서 제목 바로
+ * 아래에 그 기준을 **작지 않게** 적고, 옆에 품목별 상한·기준일·출처 표를 세운다. 근거 스냅샷이 없으면
+ * 사실만 적는 예전 제목으로 돌아간다.
  *
- * 계약 쪽 약속은 약관 한 줄이 받친다: 입찰 상한 = 신청 마감일의 인터넷 최저가. 그보다 낮게 부른
- * 곳이 없으면 그 품목은 계약하지 않는다 — 그래서 «계약 단가가 인터넷 최저가보다 싸다» 는 늘 참이다.
+ * 최상급 문구는 대표 결정(2026-09-16)이다 — 기준이 정상가라 떨이 판매처보다 싸다는 뜻은 아니므로,
+ * 한정 문구를 빼거나 줄이지 않는다.
  */
 export default function AnnualContractSection({
   round,
   today,
-  proof,
+  benchmark,
 }: {
   round: AnnualContractRound
   today: string
-  proof: { rows: PriceCompareRow[]; measuredAt: string } | null
+  benchmark: PriceBenchmarkSnapshot
 }) {
-  const proven = proof !== null && isPriceProven(proof.rows)
+  const proven = isBenchmarkReady(benchmark)
   return (
     <RevealSection id="annual" className="py-16 sm:py-20">
       <div className="container-content px-5 sm:px-10">
@@ -56,11 +56,17 @@ export default function AnnualContractSection({
               }
               description={
                 proven
-                  ? '인터넷 최저가와 같은 상품으로 비교했습니다. 매달 사는 소모품은 신청을 모아 입찰하고, 인터넷 최저가보다 낮은 단가만 12개월 동안 고정합니다.'
+                  ? '매달 사는 소모품은 신청을 모아 품목별로 한 번 입찰하고, 낙찰 단가를 12개월 동안 고정합니다.'
                   : '매달 똑같이 사는 소모품은 신청을 모아 품목별로 한 번 입찰합니다. 가장 낮게 부른 단가를 12개월 동안 고정하고, 매달 수량만 정하면 됩니다.'
               }
             />
             <RevealCard className="mt-8">
+              {proven && (
+                // 최상급 제목의 한정 문구 — 제목과 같은 눈높이에 둔다(각주로 숨기지 않는다).
+                <p className="text-violet-strong bg-violet-soft mb-6 rounded-control px-4 py-3 text-[15px] leading-7 font-semibold break-keep">
+                  재고 떨이·한정 특가를 뺀 인터넷 정상가보다 싸게 부른 곳과만 1년 계약합니다.
+                </p>
+              )}
               <ul className="space-y-2.5">
                 {ANNUAL_CONTRACT_TERMS.map(term => (
                   <li key={term} className="text-text flex items-start gap-2.5 text-[15px]">
@@ -82,13 +88,8 @@ export default function AnnualContractSection({
           </div>
 
           <RevealCard>
-            {proven && proof ? (
-              <>
-                <PriceProof rows={proof.rows} measuredAt={proof.measuredAt} />
-                <p className="text-muted mt-4 text-xs leading-5">
-                  입찰 품목: {round.items.map(item => item.name).join(' · ')} · 계약 기간 {round.term}
-                </p>
-              </>
+            {proven ? (
+              <BenchmarkTable items={round.items} benchmark={benchmark} />
             ) : (
               <div className="rounded-lg bg-white p-6 shadow-[0_18px_48px_rgba(38,28,80,0.08)] sm:p-8">
                 <div className="flex items-baseline justify-between gap-3">

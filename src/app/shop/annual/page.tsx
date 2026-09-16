@@ -1,11 +1,10 @@
 import ShopNav from '@/components/Shop/ShopNav'
-import PriceProof from '@/components/Landing/Hub/PriceProof'
 import AnnualContractHub from '@/components/Shop/Hub/AnnualContractHub'
 import { HubHeader } from '@/components/Shop/Requests/RequestKit'
 import { currentAnnualRound } from '@/config/annual-contracts'
 import { daysUntil, ddayLabel, kstToday } from '@/config/seasons'
 import { isRequestStub } from '@/lib/mall-requests'
-import { cheaperItems, getPriceCompare, isPriceProven } from '@/lib/price-compare'
+import { benchmarkBasisLabel, BENCHMARK_METHOD_NOTE, getPriceBenchmark } from '@/lib/price-benchmark'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,8 +15,7 @@ export const dynamic = 'force-dynamic'
 export default async function ShopAnnualContractPage() {
   const today = kstToday()
   const round = currentAnnualRound(today)
-  const priceCompare = getPriceCompare()
-  const proofRows = cheaperItems(priceCompare)
+  const benchmark = getPriceBenchmark()
 
   return (
     <main className="min-h-screen bg-white">
@@ -31,7 +29,7 @@ export default async function ShopAnnualContractPage() {
               description={
                 <>
                   매달 사는 소모품을 1년 단가 한 번으로 정합니다. 신청을 모아 품목별로 한 번 입찰하고,
-                  <strong className="text-text font-semibold"> 가장 낮게 부른 단가를 계약 기간 내내 고정</strong>합니다.
+                  <strong className="text-text font-semibold"> 인터넷 정상가보다 싸게 부른 곳의 단가를 계약 기간 내내 고정</strong>합니다.
                   계약 기간은 {round.term}입니다.
                 </>
               }
@@ -42,12 +40,11 @@ export default async function ShopAnnualContractPage() {
                 </span>
               }
             />
-            {priceCompare.measuredAt && isPriceProven(proofRows) && (
-              <div className="max-w-3xl">
-                <PriceProof rows={proofRows} measuredAt={priceCompare.measuredAt} limit={8} />
-              </div>
-            )}
-            <AnnualContractHub round={round} stub={isRequestStub()} />
+            <AnnualContractHub
+              round={round}
+              stub={isRequestStub()}
+              benchmark={benchmark.measuredAt ? { items: benchmark.items, basisLabel: benchmarkBasisLabel(benchmark), method: BENCHMARK_METHOD_NOTE } : null}
+            />
           </>
         ) : (
           <p className="bg-light-soft text-muted rounded-2xl px-6 py-10 text-center text-sm">

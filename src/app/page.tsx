@@ -9,6 +9,7 @@ import AudienceSwitch, { type Audience } from '@/components/Landing/Hub/Audience
 import GroupBuySection from '@/components/Landing/Hub/GroupBuySection'
 import KitsSection from '@/components/Landing/Hub/KitsSection'
 import LegalCalendarSection from '@/components/Landing/Hub/LegalCalendarSection'
+import LinkBuySection from '@/components/Landing/Hub/LinkBuySection'
 import MandatorySection from '@/components/Landing/Hub/MandatorySection'
 import OfficeServicesSection from '@/components/Landing/Hub/OfficeServicesSection'
 import OrgFavoritesSection from '@/components/Landing/Hub/OrgFavoritesSection'
@@ -28,7 +29,7 @@ import { currentCampaign, groupBuyRefKey, type GroupBuyCampaign } from '@/config
 import { seasonOf } from '@/config/season-bests'
 import { daysUntil, ddayLabel, kstToday, SEASONS } from '@/config/seasons'
 import { getLandingStats } from '@/lib/landing-stats'
-import { cheaperItems, getPriceCompare } from '@/lib/price-compare'
+import { getPriceBenchmark } from '@/lib/price-benchmark'
 import { tallyMallRequests } from '@/lib/mall-requests'
 
 // «누구에게 보여 주나»(?for=)와 D-day 가 요청마다 다르다.
@@ -38,6 +39,7 @@ export const dynamic = 'force-dynamic'
 const TALLY_TIMEOUT_MS = 2_500
 
 type SectionKey =
+  | 'linkBuy'
   | 'groupBuy'
   | 'mandatory'
   | 'orgFavorites'
@@ -57,8 +59,8 @@ type SectionKey =
  * 반대쪽 순서에서 빠진다.
  */
 const ORDER: Record<Audience, SectionKey[]> = {
-  org: ['groupBuy', 'mandatory', 'orgFavorites', 'annual', 'services', 'legal', 'season', 'orgTools', 'sourcing', 'kits'],
-  biz: ['annual', 'services', 'legal', 'groupBuy', 'season', 'switch', 'sourcing', 'kits', 'social'],
+  org: ['groupBuy', 'linkBuy', 'mandatory', 'orgFavorites', 'annual', 'services', 'legal', 'season', 'orgTools', 'sourcing', 'kits'],
+  biz: ['annual', 'linkBuy', 'services', 'legal', 'groupBuy', 'season', 'switch', 'sourcing', 'kits', 'social'],
 }
 
 /**
@@ -82,8 +84,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
 
   const campaign = currentCampaign(today)
   const round = currentAnnualRound(today)
-  const priceCompare = getPriceCompare()
-  const proofRows = cheaperItems(priceCompare)
+  const priceBenchmark = getPriceBenchmark()
   const yearEndEvent = SEASONS.find(season => season.key.startsWith('yearend') && daysUntil(season.date, today) >= 0)
 
   const sections: Record<SectionKey, ReactNode> = {
@@ -92,15 +93,11 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
         <GroupBuyWithTally campaign={campaign} today={today} />
       </Suspense>
     ) : null,
+    linkBuy: <LinkBuySection key="linkBuy" />,
     mandatory: <MandatorySection key="mandatory" />,
     orgFavorites: <OrgFavoritesSection key="orgFavorites" />,
     annual: round ? (
-      <AnnualContractSection
-        key="annual"
-        round={round}
-        today={today}
-        proof={priceCompare.measuredAt && proofRows.length > 0 ? { rows: proofRows, measuredAt: priceCompare.measuredAt } : null}
-      />
+      <AnnualContractSection key="annual" round={round} today={today} benchmark={priceBenchmark} />
     ) : null,
     services: <OfficeServicesSection key="services" month={Number(today.slice(5, 7))} />,
     legal: <LegalCalendarSection key="legal" />,
