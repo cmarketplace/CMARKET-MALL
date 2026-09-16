@@ -11,6 +11,8 @@
  * 두 번째 자물쇠). 어느 쪽이든 authorize 단계에서 씨마켓이 이미 한 번 거른 뒤다.
  */
 
+import type { CustomerType } from '@/lib/order-types'
+
 /**
  * 이 몰에 입장 가능한 기관 그룹. 쉼표로 여러 개를 적는다(`1009,1032`).
  *
@@ -41,16 +43,38 @@ export const SHOP_PROTECTED_PATHS = ['/shop', '/api/shop'] as const
  *
  * 직원(EMPLOYEE)은 세션만으로 소속을 모른다 — 씨마켓 userinfo 가 «소속 회사 역할» 을 내려주기
  * 전까지의 임시 규칙: **기관 그룹 코드가 있으면 발주기관 직원**, 없으면 제한 고객으로 본다.
+ *
+ * **이 등급은 «보기» 만 가른다.** 주문 규칙(경로·결제수단·업체 선택)은 `customerTypeOf` 가 따로 정한다 —
+ * 2026-09-16 대표 결정으로 직원은 그룹 코드가 있어 FULL 로 보더라도(보기는 그대로) 주문은 공급기업과 같다.
  */
 export type ViewerTier = 'FULL' | 'RESTRICTED'
 
+/** 씨마켓 원장 역할 — 회원(BUYER 발주기관 · SUPPLIER 공급사) / 사번(EMPLOYEE). */
+export type ShopRole = 'BUYER' | 'SUPPLIER' | 'EMPLOYEE'
+
 export function viewerTierOf(
-  role: 'BUYER' | 'SUPPLIER' | 'EMPLOYEE' | string | null | undefined,
+  role: ShopRole | string | null | undefined,
   groupCode: number | null | undefined,
 ): ViewerTier {
   if (role === 'BUYER') return 'FULL'
   if (role === 'EMPLOYEE') return typeof groupCode === 'number' ? 'FULL' : 'RESTRICTED'
   return 'RESTRICTED'
+}
+
+/**
+ * 고객 유형 — «어떻게 살 수 있는가» 의 축. 세모 `open-mall-order-terms` 와 같은 판정이다.
+ *
+ *   BUYER     발주기관(INSTITUTION). 경로 2개(안전결제·직접 구매) · 후불 포함 · 업체 조합 선택.
+ *   SUPPLIER  공급기업(COMPANY). 안전결제만 · 카드·포인트 선불만 · 업체 선택 없음(세모가 최저가로 확정).
+ *   EMPLOYEE  공급기업(COMPANY) — 2026-09-16 대표 결정 «씨마켓 직원 계정도 주문할 수 있어야 함. 다만 기관이
+ *             아니기 때문에 기업과 같이 선불만 가능.» 보기(`viewerTierOf`)는 그대로 두고 주문만 기업 규칙이다.
+ *             씨마켓은 저장카드·포인트 지갑을 회원(`b2b_member`) 단위로만 두므로 **소속 회원**(세션
+ *             `companyMemberId`)의 카드·포인트로 결제한다 — 세모에 `payerMemberId` 로 보낸다(`shop-member.ts`).
+ *
+ * 모르는 역할은 공급기업으로 본다 — 후불·직접 구매가 잘못 열리는 쪽보다 선불만 되는 쪽이 안전하다.
+ */
+export function customerTypeOf(role: ShopRole | string | null | undefined): CustomerType {
+  return role === 'BUYER' ? 'INSTITUTION' : 'COMPANY'
 }
 
 /**

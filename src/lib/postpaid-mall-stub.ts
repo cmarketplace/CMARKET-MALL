@@ -123,8 +123,35 @@ function roleOf(memberKey: string): string {
   return first > 0 ? memberKey.slice(0, first) : ''
 }
 
+/** sub 의 회원/사번 id(두 번째 `:` 뒤). 모양이 아니면 빈 문자열. */
+function memberIdOf(memberKey: string): string {
+  const second = memberKey.indexOf(':', memberKey.indexOf(':') + 1)
+  return second > 0 ? memberKey.slice(second + 1) : ''
+}
+
+/**
+ * 공급사(SUPPLIER)와 직원(EMPLOYEE)은 공급기업 규칙이다 — 직원은 2026-09-16 대표 결정(기관이 아니므로 기업과
+ * 같이 선불만). 몰의 `customerTypeOf` 와 같은 표이고, 역할을 못 읽는 옛 키만 예전처럼 발주기관으로 둔다.
+ */
 export function stubCustomerType(memberKey: string): CustomerType {
-  return roleOf(memberKey) === 'SUPPLIER' ? 'COMPANY' : 'INSTITUTION'
+  const role = roleOf(memberKey)
+  return role === 'SUPPLIER' || role === 'EMPLOYEE' ? 'COMPANY' : 'INSTITUTION'
+}
+
+/**
+ * 결제 명의 — 세모와 같은 판정. 직원은 카드·포인트가 회원 단위라 **소속 회원 id 가 반드시** 있어야 하고,
+ * 회원은 보내지 않거나 자기 id 여야 한다. 둘 다 400(몰 라우트가 직원의 빈 소속을 403 으로 먼저 막는다).
+ */
+function assertPayer(memberKey: string, payerMemberId: string | null): void {
+  if (roleOf(memberKey) === 'EMPLOYEE') {
+    if (!payerMemberId) {
+      throw new PostpaidMallError(400, '직원 계정의 결제에는 소속 회원(payerMemberId)이 필요합니다.')
+    }
+    return
+  }
+  if (payerMemberId && payerMemberId !== memberIdOf(memberKey)) {
+    throw new PostpaidMallError(400, '결제 회원(payerMemberId)이 주문자 회원과 다릅니다.')
+  }
 }
 
 /* ── 결제수단 스텁 — 예시 카드 두 장(하나는 거절·비밀번호 잠금)과 잔액 ─────── */
@@ -134,7 +161,8 @@ const STUB_DECLINED_CARD_ID = 99
 const STUB_CARD_PASSWORD = '123456'
 const STUB_POINT_BALANCE = 105_000
 
-export function stubPaymentOptions(memberKey: string): PaymentOptions {
+export function stubPaymentOptions(memberKey: string, payerMemberId: string | null): PaymentOptions {
+  assertPayer(memberKey, payerMemberId)
   const company = stubCustomerType(memberKey) === 'COMPANY'
   return {
     cards: [
@@ -171,6 +199,7 @@ export interface StubOrderLine {
 
 export function stubPlaceOrder(input: {
   memberId: string
+  payerMemberId: string | null
   shipTo: OrderShipTo
   lines: StubOrderLine[]
   clientOrderKey: string | null
@@ -190,6 +219,7 @@ export function stubPlaceOrder(input: {
   }
 
   // 세모 `resolveOpenMallOrderTerms` 와 같은 판정 — 화면이 막았어도 서버가 한 번 더 본다.
+  assertPayer(input.memberId, input.payerMemberId)
   const customerType = stubCustomerType(input.memberId)
   const dealType: DealType = customerType === 'COMPANY' ? 'CMARKET_AGENCY' : 'SUPPLIER_DIRECT'
   if (customerType === 'COMPANY' && input.route !== 'SAFE') {
@@ -222,7 +252,9 @@ export function stubPlaceOrder(input: {
         '카드 결제에는 payment.cardId(씨마켓 저장카드 id)가 필요합니다 — 결제수단 조회(payment-options)에서 고르세요.',
       )
     }
-    const card = stubPaymentOptions(input.memberId).cards.find(row => row.id === input.payment?.cardId)
+    const card = stubPaymentOptions(input.memberId, input.payerMemberId).cards.find(
+      row => row.id === input.payment?.cardId,
+    )
     if (!card) throw new PostpaidMallError(400, '결제가 완료되지 않았습니다: 카드를 찾을 수 없어요.')
     if (card.requiresPassword && input.payment.cardPassword !== STUB_CARD_PASSWORD) {
       throw new PostpaidMallError(400, '결제가 완료되지 않았습니다: 결제 확인 비밀번호가 맞지 않아요.')

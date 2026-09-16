@@ -17,7 +17,7 @@ import {
 import type { StorefrontOrder } from '@/lib/order-types'
 import { listOrders, OrderError } from '@/lib/orders'
 import { semoListSubscriptionPlans, semoPointBalance } from '@/lib/semo-subscriptions'
-import { getShopMember } from '@/lib/shop-member'
+import { getShopMember, payerMissing, semoPayerMemberId } from '@/lib/shop-member'
 import type { SubscriptionPlan } from '@/lib/subscription-types'
 
 // «누가 보는가»(재주문 판)와 D-day 가 요청마다 다르다.
@@ -79,7 +79,10 @@ export default async function ShopHomePage() {
   try {
     ;[plans, pointBalance] = await Promise.all([
       semoListSubscriptionPlans(),
-      member ? semoPointBalance(member.memberKey) : Promise.resolve(null),
+      // 직원은 소속 회원의 잔액 — 소속이 없으면 읽을 잔액이 없다(힌트를 접는다).
+      member && !payerMissing(member)
+        ? semoPointBalance(member.memberKey, semoPayerMemberId(member))
+        : Promise.resolve(null),
     ])
   } catch (error) {
     if (!(error instanceof OrderError)) throw error

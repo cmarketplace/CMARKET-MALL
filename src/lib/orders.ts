@@ -36,6 +36,8 @@ export { PostpaidMallError as OrderError } from '@/lib/postpaid-mall-stub'
 
 export interface CreateOrderInput {
   memberId: string
+  /** 결제 명의(소속 회원 id) — 직원 주문에만 채운다. 회원 주문은 null(`shop-member.ts` `semoPayerMemberId`). */
+  payerMemberId: string | null
   shipTo: OrderShipTo
   lines: StubOrderLine[]
   clientOrderKey: string | null
@@ -53,6 +55,7 @@ export async function createOrder(input: CreateOrderInput): Promise<StorefrontOr
   if (isSemoConfigured()) {
     return semoCreateOrder({
       memberId: input.memberId,
+      payerMemberId: input.payerMemberId,
       shipTo: input.shipTo,
       lines: input.lines.map(line => ({
         itemId: line.itemId,

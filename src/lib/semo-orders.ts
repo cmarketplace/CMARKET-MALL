@@ -210,6 +210,11 @@ async function withSuppliers(orders: StorefrontOrder[]): Promise<StorefrontOrder
 
 export async function semoCreateOrder(input: {
   memberId: string
+  /**
+   * 카드·포인트를 쓸 씨마켓 회원 id — **직원(EMPLOYEE) 주문에만** 채운다(세모가 직원 주문에 요구한다, 없으면 400).
+   * 회원 주문은 null 로 두고 보내지 않는다(보내면 sub 의 회원 id 와 같아야 한다). `shop-member.ts` 참고.
+   */
+  payerMemberId: string | null
   shipTo: { name: string; zip: string; address: string; tel: string | null }
   /** 세모는 품목·오퍼·수량만 받는다 — 단가는 카탈로그(또는 견적서)가 재확정한다. */
   lines: { itemId: string; quantity: number; offerId: string | null }[]
@@ -225,6 +230,7 @@ export async function semoCreateOrder(input: {
       method: 'POST',
       body: JSON.stringify({
         employeeNo: input.memberId,
+        ...(input.payerMemberId ? { payerMemberId: input.payerMemberId } : {}),
         shipTo: {
           name: input.shipTo.name,
           zip: input.shipTo.zip,

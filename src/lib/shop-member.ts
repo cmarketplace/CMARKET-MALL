@@ -1,8 +1,15 @@
 import { cookies } from 'next/headers'
 
 import { auth } from '@/auth'
-import { IS_SSO_CONFIGURED, viewerTierOf, type ViewerTier } from '@/lib/shop-auth'
+import {
+  customerTypeOf,
+  IS_SSO_CONFIGURED,
+  viewerTierOf,
+  type ShopRole,
+  type ViewerTier,
+} from '@/lib/shop-auth'
 import { isDemoMode } from '@/lib/demo-mode'
+import type { CustomerType } from '@/lib/order-types'
 
 /**
  * 서버 라우트·서버 컴포넌트가 「누가」를 정하는 유일한 자리.
@@ -40,8 +47,42 @@ export interface ShopMember {
   /** 화면·프리필용 씨마켓 회원/사번 id. **소유 판정에 쓰지 않는다.** */
   memberId: string
   displayName: string
-  /** 발주기관(FULL) / 공급사 고객(RESTRICTED) — `shop-auth.ts` 참고 */
+  /** 씨마켓 원장 역할 — 회원(BUYER·SUPPLIER) / 사번(EMPLOYEE). */
+  role: ShopRole
+  /**
+   * «무엇을 보여 줄 것인가» — 발주기관(FULL) / 공급사 고객(RESTRICTED). `shop-auth.ts` `viewerTierOf`.
+   * **주문 규칙에 쓰지 않는다** — 그건 `customerType` 이다. 둘은 갈라질 수 있다: 그룹 코드가 있는 직원은
+   * FULL 로 보지만 주문은 공급기업 규칙이다(2026-09-16 결정).
+   */
   tier: ViewerTier
+  /**
+   * «어떻게 살 수 있는가» — 발주기관(INSTITUTION) / 공급기업(COMPANY). `shop-auth.ts` `customerTypeOf`.
+   * 경로(직접 구매)·결제수단(후불)·업체 조합 선택을 이 값 하나로 가른다. 세모가 같은 판정을 다시 한다.
+   */
+  customerType: CustomerType
+  /**
+   * 카드·포인트의 주인 — 씨마켓 회원(`b2b_member`) id. 씨마켓은 저장카드·포인트 지갑을 회원 단위로만 두고
+   * 사번 id 는 회원 id 공간과 겹치므로, 직원은 **소속 회원**(세션 `companyMemberId`)의 것으로 결제한다.
+   * 회원은 자기 자신. 직원인데 소속이 비어 있으면 null — 결제가 걸린 라우트가 403 으로 막는다(`payerMissing`).
+   */
+  payerMemberId: string | null
+}
+
+/** 직원 세션에 소속 회원이 없을 때 — 결제가 걸린 라우트(주문·결제수단·구독 신청)와 결제 화면이 같은 말을 한다. */
+export const PAYER_MISSING_MESSAGE =
+  '소속 회원 정보가 없어 결제할 수 없습니다. 씨마켓에서 소속을 확인해 주세요.'
+
+/** 결제할 카드·포인트의 주인을 정할 수 없는 신원인가(소속 회원이 없는 직원). */
+export function payerMissing(member: ShopMember): boolean {
+  return member.role === 'EMPLOYEE' && !member.payerMemberId
+}
+
+/**
+ * 세모에 실어 보낼 `payerMemberId` — **직원만** 보낸다(세모는 직원 주문에 이 값을 요구한다).
+ * 회원은 sub 가 곧 결제 명의라 보내지 않는다 — 보내면 세모가 sub 의 회원 id 와 같은지 대조해야 한다.
+ */
+export function semoPayerMemberId(member: ShopMember): string | null {
+  return member.role === 'EMPLOYEE' ? member.payerMemberId : null
 }
 
 /** 데모 역할을 바꾸는 쿠키 — `/api/demo/role?role=SUPPLIER` 가 심는다. 데모 신원이 켜진 환경에서만 읽는다. */
@@ -67,19 +108,24 @@ export async function demoMember(): Promise<ShopMember | null> {
   const fromCookie = jar.get(DEMO_ROLE_COOKIE)?.value?.toUpperCase()
   const role = fromCookie || process.env.SHOP_DEMO_ROLE?.trim().toUpperCase() || 'BUYER'
   const tier = viewerTierOf(role, role === 'EMPLOYEE' ? 1000 : null)
+  // 데모 신원은 회원 둘뿐이다 — 등급으로 역할을 정한다(FULL=발주기관, RESTRICTED=공급기업). 결제 명의는 자기 자신.
+  const demoRole: ShopRole = tier === 'FULL' ? 'BUYER' : 'SUPPLIER'
   const demoId =
     tier === 'FULL'
       ? memberId
       : process.env.SHOP_DEMO_SUPPLIER_MEMBER?.trim() || `${memberId}-supplier`
   return {
     // 데모도 실제와 같은 모양의 키를 쓴다 — 모양이 다르면 데모에서만 통과하는 코드가 생긴다.
-    memberKey: `${tier === 'FULL' ? 'BUYER' : 'SUPPLIER'}::${demoId}`,
+    memberKey: `${demoRole}::${demoId}`,
     memberId: demoId,
     displayName:
       tier === 'FULL'
         ? process.env.SHOP_DEMO_MEMBER_NAME?.trim() || '데모 담당자'
         : '예시공급사 박대리',
+    role: demoRole,
     tier,
+    customerType: customerTypeOf(demoRole),
+    payerMemberId: demoId,
   }
 }
 
@@ -91,11 +137,17 @@ export async function getShopMember(): Promise<ShopMember | null> {
     // `id`(=`sub`) 가 없으면 신원이 성립하지 않는다 — 소유를 가를 키가 없다는 뜻이라
     // 「비로그인」으로 접는다. `memberId` 만 있는 세션을 통과시키면 소유가 겹친다.
     if (user?.id && user.memberId) {
+      // 소속 회원 — 씨마켓 userinfo 의 `companyMemberId`(회원은 자기 자신, 직원은 상위 회원). 이 값이 실리기
+      // 전에 발급된 세션에는 없을 수 있다: 회원은 자기 id 로 채우고, 직원은 비워 둬 결제에서 403 을 받게 한다.
+      const companyMemberId = user.companyMemberId?.trim() || null
       return {
         memberKey: user.id,
         memberId: user.memberId,
         displayName: user.name?.trim() || user.memberId,
+        role: user.role,
         tier: viewerTierOf(user.role, user.groupCode),
+        customerType: customerTypeOf(user.role),
+        payerMemberId: user.role === 'EMPLOYEE' ? companyMemberId : (companyMemberId ?? user.memberId),
       }
     }
   }

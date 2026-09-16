@@ -20,6 +20,10 @@ import type { OrderRoute } from '@/lib/order-types'
  * 업체로» 뿐이다. 견적서는 품의에 붙는 종이라 화면 스냅샷 값을 그대로 찍으면 안 된다.
  *
  * 명의는 세션에서만 온다(로그인 없으면 401) — 견적서에 기관·담당자가 실려야 하기 때문이다.
+ *
+ * 공급기업(SUPPLIER·EMPLOYEE — 세션 역할로 정한 `customerType`)의 견적은 주문과 같은 규칙으로 만든다:
+ * 안전결제 고정, 업체 조합은 무조건 최저가(손으로 고른 업체·«업체 최소화» 무시). 그래야 그 견적번호로
+ * 낸 주문이 세모가 실제로 세울 주문(최저가·씨마켓 구매대행)과 같다. 공급사명을 가릴지는 보기 등급(tier)이다.
  */
 
 const MAX_LINES = 200
@@ -127,13 +131,15 @@ export async function POST(request: Request) {
       )
     }
 
+    // 공급기업은 업체를 고르지 않는다 — 오래된 탭이 «직접 고르기» 를 보내도 최저가 조합으로 만든다.
+    const isCompany = member.customerType === 'COMPANY'
     const result = combine(
       requested.map(line => ({
         product: byId.get(line.itemId)!,
         quantity: line.quantity,
-        offerId: line.offerId,
+        offerId: isCompany ? null : line.offerId,
       })),
-      parseMode(body.mode),
+      isCompany ? 'best' : parseMode(body.mode),
     )
 
     const lines: QuoteLine[] = result.lines.map(line => ({
@@ -150,7 +156,7 @@ export async function POST(request: Request) {
     const quote = await createQuote({
       memberId: member.memberKey,
       kind: 'CART',
-      route: member.tier === 'FULL' ? parseRoute(body.route) : 'SAFE',
+      route: isCompany ? 'SAFE' : parseRoute(body.route),
       lines,
       shipping: result.shipping,
       subscription: null,

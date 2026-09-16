@@ -2,7 +2,12 @@ import { NextResponse } from 'next/server'
 
 import { toErrorResponse } from '@/lib/api-errors'
 import { createOrder, listOrders, OrderError } from '@/lib/orders'
-import { getShopMember } from '@/lib/shop-member'
+import {
+  getShopMember,
+  PAYER_MISSING_MESSAGE,
+  payerMissing,
+  semoPayerMemberId,
+} from '@/lib/shop-member'
 import {
   allowedPaymentMethods,
   type CustomerType,
@@ -22,8 +27,10 @@ export const maxDuration = 60
  * 몰 주문 — 브라우저와 원장 사이의 유일한 통로.
  *
  *   1) **주문자** — 요청 본문이 아니라 **세션**에서. 주문은 계약·결제의 당사자가
- *      필요해서 익명일 수 없다(로그인 없으면 401). 세션의 등급이 곧 고객 유형이다:
- *      발주기관(FULL) / 공급기업(RESTRICTED).
+ *      필요해서 익명일 수 없다(로그인 없으면 401). 고객 유형은 세션의 **역할**이 정한다
+ *      (`customerTypeOf`): 발주기관(BUYER) / 공급기업(SUPPLIER · EMPLOYEE). 보기 등급(tier)이 아니다 —
+ *      그룹 코드가 있는 직원은 FULL 로 보지만 주문은 공급기업 규칙이다(2026-09-16 대표 결정).
+ *      직원은 소속 회원의 카드·포인트로 결제한다 — 세모에 `payerMemberId` 로 싣고, 소속이 비었으면 403.
  *   2) **배송지** — 이 몰은 모두 개방이라 고정 사업장 목록이 없다. 주문자가 적은
  *      주소를 받되 서버가 모양을 검증한다.
  *   3) **금액** — 스텁 단계에서는 화면 스냅샷 단가·배송비를 받아 서버가 합산하고,
@@ -180,6 +187,10 @@ export async function POST(request: Request) {
       { status: 401 },
     )
   }
+  // 직원은 소속 회원의 카드·포인트로만 결제한다(선불만) — 소속이 없으면 어떤 결제수단도 성립하지 않는다.
+  if (payerMissing(member)) {
+    return NextResponse.json({ message: PAYER_MISSING_MESSAGE }, { status: 403 })
+  }
 
   let body: OrderRequestBody
   try {
@@ -201,15 +212,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: shipTo }, { status: 400 })
   }
 
-  // 발주기관(FULL) / 공급기업(RESTRICTED) — 세션 등급이 곧 고객 유형이다.
-  const customerType: CustomerType = member.tier === 'FULL' ? 'INSTITUTION' : 'COMPANY'
+  // 발주기관(BUYER) / 공급기업(SUPPLIER·EMPLOYEE) — 세션 역할이 고객 유형을 정한다(보기 등급과 별개).
+  const customerType: CustomerType = member.customerType
   const terms = resolveTerms(customerType, body.route, body.paymentMethod)
   if (typeof terms === 'string') {
     return NextResponse.json({ message: terms }, { status: 400 })
   }
   const { route, paymentMethod } = terms
 
-  // 공급기업 주문은 공급사를 고르지 않는다(세모가 최저가로 확정) — 이름·오퍼 지정을 지운다.
+  // 공급기업(직원 포함) 주문은 공급사를 고르지 않는다(세모가 최저가로 확정) — 이름·오퍼 지정을 지운다.
   if (customerType === 'COMPANY') {
     for (const line of lines) {
       line.supplierName = null
@@ -259,6 +270,7 @@ export async function POST(request: Request) {
   try {
     const order = await createOrder({
       memberId: member.memberKey,
+      payerMemberId: semoPayerMemberId(member),
       shipTo,
       lines,
       clientOrderKey:

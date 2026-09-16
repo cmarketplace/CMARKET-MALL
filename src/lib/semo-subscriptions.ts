@@ -1,5 +1,6 @@
 import { PostpaidMallError } from '@/lib/postpaid-mall-stub'
 import { isSemoConfigured, resolveSemoApi, storefrontUrl } from '@/lib/semo-api'
+import { paymentOptionsPath } from '@/lib/semo-payment-options'
 import type {
   Subscription,
   SubscriptionAction,
@@ -74,12 +75,16 @@ export async function semoListSubscriptionPlans(): Promise<SubscriptionPlan[]> {
 /**
  * 포인트 잔액 힌트 — 결제수단 조회(`payment-options`)의 포인트 합만 뽑는다. 결제창 전체는 S6 몫이라
  * 여기서는 «구독 첫 결제가 들어갈 만큼 있는가» 만 본다. 못 읽으면 null(화면은 힌트를 접는다).
+ * 직원은 소속 회원의 잔액이다(`payerMemberId`, 회원은 null).
  */
-export async function semoPointBalance(memberKey: string): Promise<number | null> {
+export async function semoPointBalance(
+  memberKey: string,
+  payerMemberId: string | null,
+): Promise<number | null> {
   if (!isSemoConfigured()) return null
   try {
     const options = await semoFetch<{ points?: { balance?: number } }>(
-      `/payment-options?ownerKey=${encodeURIComponent(memberKey)}`,
+      paymentOptionsPath(memberKey, payerMemberId),
     )
     const balance = options.points?.balance
     return typeof balance === 'number' ? balance : null
@@ -91,6 +96,8 @@ export async function semoPointBalance(memberKey: string): Promise<number | null
 
 export async function semoCreateSubscription(input: {
   memberKey: string
+  /** 포인트의 주인(소속 회원 id) — 직원만 채운다. 세모가 직원 구독에 요구한다(없으면 400). */
+  payerMemberId: string | null
   planKey: string
   people: number
   frequencyIndex: number
@@ -101,6 +108,7 @@ export async function semoCreateSubscription(input: {
     method: 'POST',
     body: JSON.stringify({
       ownerKey: input.memberKey,
+      ...(input.payerMemberId ? { payerMemberId: input.payerMemberId } : {}),
       planKey: input.planKey,
       people: input.people,
       frequencyIndex: input.frequencyIndex,
