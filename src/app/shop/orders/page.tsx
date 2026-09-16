@@ -58,6 +58,15 @@ export default async function ShopOrdersPage() {
           <p className="text-muted mt-1 text-sm leading-6">
             주문한 건과 진행 상태입니다. 결제는 납품 검수가 끝난 뒤 후불로 합니다.
           </p>
+          {orders.length > 0 && (
+            // 인수인계용 — 담당자가 바뀌면 새 담당자는 이 목록을 몰에서 볼 수 없다.
+            <a
+              href="/api/shop/orders/export"
+              className="text-primary bg-blue-tint-2 hover:bg-accent mt-3 inline-flex items-center rounded-control px-3.5 py-2 text-xs font-semibold transition-colors"
+            >
+              엑셀(CSV)로 내려받기 · 인수인계용
+            </a>
+          )}
 
           {loadError ? (
             <p
