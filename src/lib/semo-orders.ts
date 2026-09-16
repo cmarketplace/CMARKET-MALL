@@ -34,13 +34,25 @@ import { fetchItemOffers } from '@/lib/semo-feed'
 
 const UPSTREAM_TIMEOUT_MS = 20_000
 
+/**
+ * 주문 등록만 길게 기다린다. 세모는 그 안에서 씨마켓 카드 승인(최대 30초)과 공급사별 등록(곳당 최대
+ * 10초)을 차례로 부른다. 20초로 끊으면 결제는 됐는데 몰은 실패라고 보여 주는 창이 생겼다
+ * (2026-09-16 검수). 끊겨도 이제 결제 화면이 같은 주문 키를 들고 있어 두 번 결제되지는 않는다 —
+ * 이 값은 «결과 확인 중» 안내를 덜 보게 하는 UX 값이다. 라우트 maxDuration(60초) 안에 둔다.
+ */
+const ORDER_TIMEOUT_MS = 55_000
+
 interface SemoEnvelope<T> {
   success?: boolean
   data?: T
   message?: string | string[]
 }
 
-async function semoFetch<T>(path: string, init?: RequestInit): Promise<T> {
+async function semoFetch<T>(
+  path: string,
+  init?: RequestInit,
+  timeoutMs: number = UPSTREAM_TIMEOUT_MS,
+): Promise<T> {
   const config = resolveSemoApi()
 
   const response = await fetch(storefrontUrl(config, path), {
@@ -50,7 +62,7 @@ async function semoFetch<T>(path: string, init?: RequestInit): Promise<T> {
       'Content-Type': 'application/json',
       ...(init?.headers ?? {}),
     },
-    signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
     cache: 'no-store',
   })
 
@@ -207,36 +219,40 @@ export async function semoCreateOrder(input: {
   quoteNo: string | null
   payment: OrderPaymentInput | null
 }): Promise<StorefrontOrder> {
-  const order = await semoFetch<SemoOrderPayload>('/orders', {
-    method: 'POST',
-    body: JSON.stringify({
-      employeeNo: input.memberId,
-      shipTo: {
-        name: input.shipTo.name,
-        zip: input.shipTo.zip,
-        address: input.shipTo.address,
-        ...(input.shipTo.tel ? { tel: input.shipTo.tel } : {}),
-      },
-      items: input.lines.map(line => ({
-        itemId: line.itemId,
-        quantity: line.quantity,
-        // 세모 주문 DTO 의 이름은 `offeringId`(견적 DTO 는 `offerId` — 둘이 다르다).
-        ...(line.offerId ? { offeringId: line.offerId } : {}),
-      })),
-      ...(input.clientOrderKey ? { clientOrderKey: input.clientOrderKey } : {}),
-      route: input.route,
-      ...(input.paymentMethod ? { paymentMethod: input.paymentMethod } : {}),
-      ...(input.quoteNo ? { quoteNo: input.quoteNo } : {}),
-      ...(input.payment
-        ? {
-            payment: {
-              cardId: input.payment.cardId,
-              ...(input.payment.cardPassword ? { cardPassword: input.payment.cardPassword } : {}),
-            },
-          }
-        : {}),
-    }),
-  })
+  const order = await semoFetch<SemoOrderPayload>(
+    '/orders',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        employeeNo: input.memberId,
+        shipTo: {
+          name: input.shipTo.name,
+          zip: input.shipTo.zip,
+          address: input.shipTo.address,
+          ...(input.shipTo.tel ? { tel: input.shipTo.tel } : {}),
+        },
+        items: input.lines.map(line => ({
+          itemId: line.itemId,
+          quantity: line.quantity,
+          // 세모 주문 DTO 의 이름은 `offeringId`(견적 DTO 는 `offerId` — 둘이 다르다).
+          ...(line.offerId ? { offeringId: line.offerId } : {}),
+        })),
+        ...(input.clientOrderKey ? { clientOrderKey: input.clientOrderKey } : {}),
+        route: input.route,
+        ...(input.paymentMethod ? { paymentMethod: input.paymentMethod } : {}),
+        ...(input.quoteNo ? { quoteNo: input.quoteNo } : {}),
+        ...(input.payment
+          ? {
+              payment: {
+                cardId: input.payment.cardId,
+                ...(input.payment.cardPassword ? { cardPassword: input.payment.cardPassword } : {}),
+              },
+            }
+          : {}),
+      }),
+    },
+    ORDER_TIMEOUT_MS,
+  )
   const [mall] = await withSuppliers([toMallOrder(order)])
   return mall
 }

@@ -15,6 +15,9 @@ import type { StubOrderLine } from '@/lib/postpaid-mall-stub'
 import { isQuoteValid } from '@/lib/quote-types'
 import { getQuote } from '@/lib/quotes'
 
+/** 세모 주문 등록 대기(55초) + 앞뒤 처리 여유. Vercel 함수가 먼저 끊으면 몰이 결과를 전하지 못한다. */
+export const maxDuration = 60
+
 /**
  * 몰 주문 — 브라우저와 원장 사이의 유일한 통로.
  *
@@ -260,8 +263,29 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ order }, { status: 201 })
   } catch (error) {
+    // 결과를 모르는 실패(세모 응답 시간 초과·연결 끊김·5xx)는 «실패» 로 말하지 않는다 — 결제는 이미
+    // 끝났을 수 있다. 5xx 로 답하면 결제 화면이 같은 주문 키를 들고 있다가, 다시 누르면 세모가 같은
+    // 주문으로 이어 준다(결제됐으면 그 주문, 진행 중이면 503). 503 은 세모 문구(연동 미설정·결제 처리
+    // 중)가 담당자에게 필요해서 그대로 전한다.
+    if (isOutcomeUnknown(error)) {
+      console.error('[shop/api/orders] 주문 결과 불명', error)
+      return NextResponse.json({ message: ORDER_OUTCOME_UNKNOWN_MESSAGE }, { status: 504 })
+    }
     return toErrorResponse(error, '주문을 등록하지 못했습니다.')
   }
+}
+
+const ORDER_OUTCOME_UNKNOWN_MESSAGE =
+  '결제 결과를 아직 확인하지 못했습니다. 주문 내역에서 주문이 들어갔는지 먼저 확인해 주세요. ' +
+  '없으면 이 화면에서 다시 누르세요 — 같은 주문으로 이어져 두 번 결제되지 않습니다.'
+
+function isOutcomeUnknown(error: unknown): boolean {
+  if (error instanceof OrderError) return error.status >= 500 && error.status !== 503
+  if (error instanceof Error) {
+    // AbortSignal.timeout → TimeoutError, 연결 실패 → TypeError(fetch failed)
+    return error.name === 'TimeoutError' || error.name === 'AbortError' || error.name === 'TypeError'
+  }
+  return false
 }
 
 /** 내 주문 내역. 남의 주문은 볼 수 없다 — 계정을 세션에서만 받기 때문이다. */

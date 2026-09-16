@@ -69,6 +69,26 @@ export class LoginRequiredError extends Error {
   }
 }
 
+/**
+ * 서버가 답한 주문 실패. 4xx 는 확정된 거절(카드 거절·잔액 부족·규칙 위반 — 주문이 서지 않았거나
+ * 접혔다)이고, 5xx 는 결과를 모르거나 결제가 진행 중이라는 뜻이다 — 결제 화면은 5xx 면 같은 주문 키를
+ * 들고 있어야 한다.
+ */
+export class OrderSubmitError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message)
+    this.name = 'OrderSubmitError'
+  }
+
+  /** 주문이 서지 않았거나 접힌 것이 확실하다 — 다음 시도는 새 주문 키로. */
+  get isDefinitive(): boolean {
+    return this.status >= 400 && this.status < 500
+  }
+}
+
 async function readPayload<T>(response: Response): Promise<T | null> {
   return (await response.json().catch(() => null)) as T | null
 }
@@ -97,7 +117,7 @@ export async function placeOrder(input: {
   if (!response.ok || !payload?.order) {
     // 서버가 준 문구를 그대로 보여 준다 — 배송지 형식 오류·카드 거절·잔액 부족·연동 미설정처럼
     // 담당자가 읽고 움직일 수 있는 말이 여기 담긴다(세모 402/400/503 문구 그대로).
-    throw new Error(payload?.message ?? '주문을 등록하지 못했습니다.')
+    throw new OrderSubmitError(payload?.message ?? '주문을 등록하지 못했습니다.', response.status)
   }
 
   return payload.order

@@ -24,6 +24,7 @@ import {
 } from '@/lib/order-types'
 import {
   LoginRequiredError,
+  OrderSubmitError,
   fetchPaymentOptions,
   getActiveQuoteServerSnapshot,
   getActiveQuoteSnapshot,
@@ -190,10 +191,18 @@ export default function CheckoutView({ viewerName, customerType }: CheckoutViewP
         setNeedsLogin(true)
         return
       }
-      // 결제가 거절된 주문은 세모가 남기지 않는다 — 다음 시도는 새 주문 키로 간다(같은 키는 «이미
-      // 취소된 주문 키» 로 거절된다).
-      orderKeyRef.current = null
-      setOrderError(error instanceof Error ? error.message : '주문을 등록하지 못했습니다.')
+      // 확정된 거절(4xx: 카드 거절·잔액 부족·규칙 위반)만 새 주문 키로 간다 — 세모가 그 주문을 접었다
+      // (같은 키는 «이미 취소된 주문 키» 로 거절된다). 시간 초과·연결 끊김·5xx 는 결제가 이미 됐거나
+      // 진행 중일 수 있어 **같은 키를 유지**한다. 여기서 키를 버리면 다시 누를 때 새 주문이 서서 같은
+      // 카드가 한 번 더 승인됐다(2026-09-16 검수).
+      if (error instanceof OrderSubmitError && error.isDefinitive) {
+        orderKeyRef.current = null
+      }
+      setOrderError(
+        error instanceof OrderSubmitError
+          ? error.message
+          : '연결이 끊겨 결제 결과를 확인하지 못했습니다. 주문 내역에서 먼저 확인해 주세요. 없으면 다시 누르세요 — 같은 주문으로 이어집니다.',
+      )
     }
   }
 
