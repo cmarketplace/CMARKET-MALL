@@ -44,10 +44,14 @@ interface CheckoutViewProps {
   /** 로그인한 담당자 이름. 없으면 주문 버튼이 로그인 문으로 안내한다. */
   viewerName: string | null
   /**
-   * 발주기관(INSTITUTION) / 공급기업(COMPANY). 서버가 세션 등급으로 정한 값이고, 주문 API 와
+   * 발주기관(INSTITUTION) / 공급기업(COMPANY — 공급사·직원). 서버가 세션 역할로 정한 값이고, 주문 API 와
    * 세모가 같은 판정을 다시 한다 — 여기서는 «고를 수 있는 것» 만 미리 거른다.
    */
   customerType: CustomerType
+  /** 직원 계정 — 카드·포인트가 본인 것이 아니라 소속 회원의 것이다(씨마켓이 회원 단위로만 둔다). 문구만 바꾼다. */
+  paysWithAffiliate: boolean
+  /** 결제 명의를 정할 수 없는 사유(소속 회원이 없는 직원). 있으면 결제수단을 읽지 않고 이 말을 보여 준다. */
+  payerBlockedMessage: string | null
 }
 
 /** idle = 아직 안 읽음(카드·포인트를 고른 순간 읽기 시작한다) → ready | error. */
@@ -71,22 +75,28 @@ const formatDate = (iso: string) =>
  * 고객 유형이 화면을 가른다(`allowedPaymentMethods` — 세모 서버 규칙의 사본):
  *   발주기관  경로 2개 · 안전결제면 후불·카드·포인트, 직접 구매면 후불만.
  *   공급기업  경로 선택 없음(안전결제 고정) · 카드·포인트 선불만 · 업체 조합 없음 —
- *            세모가 최저가 공급사로 확정하고 «씨마켓 구매대행» 으로 남긴다.
+ *            세모가 최저가 공급사로 확정하고 «씨마켓 구매대행» 으로 남긴다. 씨마켓 직원 계정도
+ *            여기다(2026-09-16) — 소속 회원의 카드·포인트로 결제한다.
  *
  * 카드·포인트는 **주문 등록과 같은 요청에서** 씨마켓이 승인한다. 거절되면 주문은 남지 않고
  * 세모가 보낸 사유(카드 거절·잔액 부족·연동 미설정)가 그대로 이 화면에 뜬다.
  */
-export default function CheckoutView({ viewerName, customerType }: CheckoutViewProps) {
+export default function CheckoutView({
+  viewerName,
+  customerType,
+  paysWithAffiliate,
+  payerBlockedMessage,
+}: CheckoutViewProps) {
   const router = useRouter()
-  const { cartItems, result } = useCartCombination()
+  const isCompany = customerType === 'COMPANY'
+  // 공급기업은 장바구니에 남은 조합 방식·고른 업체를 쓰지 않는다 — 세모가 결제할 최저가 조합으로 그린다.
+  const { cartItems, result } = useCartCombination({ lowestOnly: isCompany })
   const shipTo = useSyncExternalStore(subscribeShipTo, getShipToSnapshot, getShipToServerSnapshot)
   const activeQuote = useSyncExternalStore(
     subscribeActiveQuote,
     getActiveQuoteSnapshot,
     getActiveQuoteServerSnapshot,
   )
-
-  const isCompany = customerType === 'COMPANY'
 
   const [route, setRoute] = useState<OrderRoute>('SAFE')
   const [chosenMethod, setChosenMethod] = useState<PaymentMethod | null>(null)
@@ -133,7 +143,9 @@ export default function CheckoutView({ viewerName, customerType }: CheckoutViewP
 
   // 카드·포인트를 고른 순간에만 결제창 재료를 읽는다 — 후불만 쓰는 기관에 씨마켓 연동 오류를
   // 보여 줄 이유가 없다. 한 번 읽으면 그 화면에서는 다시 읽지 않는다.
-  const needsOptions = effectiveRoute === 'SAFE' && prepaid
+  // 결제 명의가 없으면(소속 회원이 없는 직원) 읽지 않는다 — 라우트가 403 을 줄 것을 알고 있다.
+  const payBlocked = prepaid && payerBlockedMessage !== null
+  const needsOptions = effectiveRoute === 'SAFE' && prepaid && !payBlocked
   const optionsLoading = needsOptions && paymentOptions.status === 'idle'
   useEffect(() => {
     if (!needsOptions || paymentOptions.status !== 'idle') return
@@ -170,7 +182,7 @@ export default function CheckoutView({ viewerName, customerType }: CheckoutViewP
     setShipTo({ ...shipTo, [field]: field === 'tel' ? value || null : value })
 
   const handleOrder = async () => {
-    if (lines.length === 0 || isPlacing || !cardReady) return
+    if (lines.length === 0 || isPlacing || !cardReady || payBlocked) return
     setOrderError(null)
     setNeedsLogin(false)
     setIsPlacing(true)
@@ -305,9 +317,11 @@ export default function CheckoutView({ viewerName, customerType }: CheckoutViewP
                 <p className="text-primary text-xs font-semibold">{DEAL_TYPE_LABEL.CMARKET_AGENCY}</p>
                 <h2 className="text-text mt-1 text-base font-semibold">{ORDER_ROUTE_LABEL.SAFE}로 주문합니다</h2>
                 <p className="text-muted mt-2 text-xs leading-5">
-                  공급기업 계정의 주문은 {TENANT.orgName}이 최저가 공급사에게서 사서 판매하는 «{DEAL_TYPE_LABEL.CMARKET_AGENCY}»
-                  입니다. 계약·세금계산서 상대는 {TENANT.safePaymentCounterpart} 한 곳이고, 공급사는 {TENANT.orgName}이
-                  정합니다(업체 선택 없음). 결제는 카드 또는 {TENANT.orgName} 포인트 선불이며 후불은 고를 수 없습니다.
+                  {paysWithAffiliate ? '직원' : '공급기업'} 계정의 주문은 {TENANT.orgName}이 최저가 공급사에게서 사서
+                  판매하는 «{DEAL_TYPE_LABEL.CMARKET_AGENCY}»입니다. 계약·세금계산서 상대는{' '}
+                  {TENANT.safePaymentCounterpart} 한 곳이고, 공급사는 {TENANT.orgName}이 정합니다(업체 선택 없음). 결제는
+                  카드 또는 {TENANT.orgName} 포인트 선불이며 후불은 고를 수 없습니다.
+                  {paysWithAffiliate && ' 카드·포인트는 소속 회원의 것으로 결제됩니다.'}
                 </p>
                 <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
                   {[
@@ -454,6 +468,13 @@ export default function CheckoutView({ viewerName, customerType }: CheckoutViewP
                   ))}
                 </div>
 
+                {/* 결제 명의 없음 — 카드·포인트를 읽지 않고 사유만 */}
+                {payBlocked && (
+                  <p role="alert" className="mt-4 rounded-xl bg-[#FDECEC] px-4 py-3 text-xs leading-5 text-[#B3261E]">
+                    {payerBlockedMessage}
+                  </p>
+                )}
+
                 {paymentMethod === 'TAX_INVOICE' && (
                   <p className="text-muted mt-3 text-xs leading-5">
                     지금 결제되지 않습니다. 납품 검수 후 {TENANT.orgName}이 청구서와 세금계산서를 발행합니다.
@@ -462,9 +483,10 @@ export default function CheckoutView({ viewerName, customerType }: CheckoutViewP
                 )}
 
                 {/* 카드 — 씨마켓 결제관리에 저장된 카드 중 하나 */}
-                {paymentMethod === 'CARD' && (
+                {paymentMethod === 'CARD' && !payBlocked && (
                   <div className="mt-4" aria-label="결제 카드">
                     <p className="text-text text-xs font-semibold">
+                      {paysWithAffiliate && '소속 회원의 '}
                       {TENANT.orgName} 결제관리에 저장된 카드
                     </p>
                     {optionsLoading && (
@@ -537,7 +559,7 @@ export default function CheckoutView({ viewerName, customerType }: CheckoutViewP
                 )}
 
                 {/* 포인트 — 잔액과 결제 후 잔액 */}
-                {paymentMethod === 'POINT' && (
+                {paymentMethod === 'POINT' && !payBlocked && (
                   <div className="mt-4" aria-label="포인트 잔액">
                     {optionsLoading && (
                       <p className="text-muted text-xs">포인트 잔액을 불러오는 중…</p>
@@ -549,7 +571,7 @@ export default function CheckoutView({ viewerName, customerType }: CheckoutViewP
                     )}
                     {points && (
                       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-                        <dt className="text-muted">사용 가능 포인트</dt>
+                        <dt className="text-muted">{paysWithAffiliate ? '소속 회원 포인트' : '사용 가능 포인트'}</dt>
                         <dd className="text-text font-semibold tabular-nums">{won(points.balance)}P</dd>
                         <dt className="text-muted">이번 결제</dt>
                         <dd className="text-text tabular-nums">−{won(amounts.total)}P</dd>
@@ -685,12 +707,12 @@ export default function CheckoutView({ viewerName, customerType }: CheckoutViewP
             <button
               type="button"
               onClick={handleOrder}
-              disabled={isPlacing || !cardReady}
+              disabled={isPlacing || !cardReady || payBlocked}
               className="bg-primary hover:bg-primary-dark mt-5 w-full cursor-pointer rounded-full px-6 py-4 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
             >
               {orderButtonLabel}
             </button>
-            {paymentMethod === 'CARD' && !cardReady && !isPlacing && (
+            {paymentMethod === 'CARD' && !cardReady && !isPlacing && !payBlocked && (
               <p className="text-muted mt-2 text-center text-xs">
                 {selectedCard ? '결제 확인 비밀번호 6자리를 입력해 주세요.' : '결제할 카드를 골라 주세요.'}
               </p>
