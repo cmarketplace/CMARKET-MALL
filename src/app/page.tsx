@@ -28,7 +28,7 @@ import { currentCampaign, groupBuyRefKey, type GroupBuyCampaign } from '@/config
 import { seasonOf } from '@/config/season-bests'
 import { daysUntil, ddayLabel, kstToday, SEASONS } from '@/config/seasons'
 import { getLandingStats } from '@/lib/landing-stats'
-import { cheaperItems, getPriceCompare } from '@/lib/price-compare'
+import { getPriceBenchmark } from '@/lib/price-benchmark'
 import { tallyMallRequests } from '@/lib/mall-requests'
 
 // «누구에게 보여 주나»(?for=)와 D-day 가 요청마다 다르다.
@@ -82,8 +82,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
 
   const campaign = currentCampaign(today)
   const round = currentAnnualRound(today)
-  const priceCompare = getPriceCompare()
-  const proofRows = cheaperItems(priceCompare)
+  const priceBenchmark = getPriceBenchmark()
   const yearEndEvent = SEASONS.find(season => season.key.startsWith('yearend') && daysUntil(season.date, today) >= 0)
 
   const sections: Record<SectionKey, ReactNode> = {
@@ -95,12 +94,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
     mandatory: <MandatorySection key="mandatory" />,
     orgFavorites: <OrgFavoritesSection key="orgFavorites" />,
     annual: round ? (
-      <AnnualContractSection
-        key="annual"
-        round={round}
-        today={today}
-        proof={priceCompare.measuredAt && proofRows.length > 0 ? { rows: proofRows, measuredAt: priceCompare.measuredAt } : null}
-      />
+      <AnnualContractSection key="annual" round={round} today={today} benchmark={priceBenchmark} />
     ) : null,
     services: <OfficeServicesSection key="services" month={Number(today.slice(5, 7))} />,
     legal: <LegalCalendarSection key="legal" />,
