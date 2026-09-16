@@ -9,6 +9,7 @@ import AudienceSwitch, { type Audience } from '@/components/Landing/Hub/Audience
 import GroupBuySection from '@/components/Landing/Hub/GroupBuySection'
 import KitsSection from '@/components/Landing/Hub/KitsSection'
 import LegalCalendarSection from '@/components/Landing/Hub/LegalCalendarSection'
+import LinkBuySection from '@/components/Landing/Hub/LinkBuySection'
 import MandatorySection from '@/components/Landing/Hub/MandatorySection'
 import OfficeServicesSection from '@/components/Landing/Hub/OfficeServicesSection'
 import OrgFavoritesSection from '@/components/Landing/Hub/OrgFavoritesSection'
@@ -38,6 +39,7 @@ export const dynamic = 'force-dynamic'
 const TALLY_TIMEOUT_MS = 2_500
 
 type SectionKey =
+  | 'linkBuy'
   | 'groupBuy'
   | 'mandatory'
   | 'orgFavorites'
@@ -57,8 +59,8 @@ type SectionKey =
  * 반대쪽 순서에서 빠진다.
  */
 const ORDER: Record<Audience, SectionKey[]> = {
-  org: ['groupBuy', 'mandatory', 'orgFavorites', 'annual', 'services', 'legal', 'season', 'orgTools', 'sourcing', 'kits'],
-  biz: ['annual', 'services', 'legal', 'groupBuy', 'season', 'switch', 'sourcing', 'kits', 'social'],
+  org: ['groupBuy', 'linkBuy', 'mandatory', 'orgFavorites', 'annual', 'services', 'legal', 'season', 'orgTools', 'sourcing', 'kits'],
+  biz: ['annual', 'linkBuy', 'services', 'legal', 'groupBuy', 'season', 'switch', 'sourcing', 'kits', 'social'],
 }
 
 /**
@@ -91,6 +93,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
         <GroupBuyWithTally campaign={campaign} today={today} />
       </Suspense>
     ) : null,
+    linkBuy: <LinkBuySection key="linkBuy" />,
     mandatory: <MandatorySection key="mandatory" />,
     orgFavorites: <OrgFavoritesSection key="orgFavorites" />,
     annual: round ? (
