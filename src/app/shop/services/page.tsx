@@ -2,19 +2,17 @@ import ShopNav from '@/components/Shop/ShopNav'
 import ServicesHub from '@/components/Shop/Hub/ServicesHub'
 import { HubHeader } from '@/components/Shop/Requests/RequestKit'
 import { findService } from '@/config/office-services'
+import { SUBSCRIPTION_PLANS } from '@/config/subscriptions'
 import { kstToday } from '@/config/seasons'
 import { isRequestStub } from '@/lib/mall-requests'
-import { OrderError } from '@/lib/orders'
-import { semoListSubscriptionPlans } from '@/lib/semo-subscriptions'
 
 export const dynamic = 'force-dynamic'
 
 /**
  * 사무실 관리 — 청소·렌탈·탕비실·점검을 골라 **한 장의 견적 요청**으로 보낸다.
  *
- * 세모에 구독 상품이 있는 서비스(사무실 청소·간식)는 견적 없이 바로 구독하는 문도 함께 연다.
- * 어느 상품이 살아 있는지는 세모 목록으로 판정한다 — 설정의 planKey 만 믿으면 세모에서 내린
- * 상품에 «바로 구독» 이 서 있게 된다.
+ * 몰 홈 정기구독 히어로에 있는 상품(사무실 청소·간식)은 견적 없이 바로 구독하는 문도 함께 연다
+ * (`config/subscriptions.ts` 의 key 로 판정).
  */
 export default async function ShopServicesPage({
   searchParams,
@@ -24,13 +22,8 @@ export default async function ShopServicesPage({
   const { service } = await searchParams
   const preselected = findService(service)?.key ?? null
 
-  let livePlanKeys: string[] = []
-  try {
-    livePlanKeys = (await semoListSubscriptionPlans()).filter(plan => plan.available).map(plan => plan.key)
-  } catch (error) {
-    if (!(error instanceof OrderError)) throw error
-    console.error('[shop/services plans]', error.status, error.message)
-  }
+  // 몰 홈의 정기구독 히어로가 다루는 상품 — «바로 구독» 문은 이 key 가 있는 서비스에만 연다.
+  const livePlanKeys = SUBSCRIPTION_PLANS.map(plan => plan.key)
 
   return (
     <main className="min-h-screen bg-white">

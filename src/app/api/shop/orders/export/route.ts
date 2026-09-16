@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { toErrorResponse } from '@/lib/api-errors'
-import { ORDER_ROUTE_LABEL, orderStatusLabel, PAYMENT_METHOD_LABEL } from '@/lib/order-types'
+import { ORDER_ROUTE_LABEL, ORDER_STATUS_LABEL, PAYMENT_METHOD_LABEL } from '@/lib/order-types'
 import { listOrders } from '@/lib/orders'
 import { getShopMember } from '@/lib/shop-member'
 
@@ -39,7 +39,7 @@ export async function GET() {
           [
             order.orderNo,
             formatDateTime(order.createdAt),
-            orderStatusLabel(order.status),
+            ORDER_STATUS_LABEL[order.status] ?? order.status,
             ORDER_ROUTE_LABEL[order.route],
             order.paymentMethod ? PAYMENT_METHOD_LABEL[order.paymentMethod] : '',
             order.quoteNo,

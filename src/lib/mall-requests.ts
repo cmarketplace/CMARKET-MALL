@@ -58,7 +58,9 @@ async function semoFetch<T>(pathname: string, init?: RequestInit, timeoutMs = UP
   // Nest 는 없는 경로에도 404 와 «Cannot POST /…» 를 준다 — 그 문구를 담당자에게 보이지 않는다.
   const rawMessage = Array.isArray(payload?.message) ? payload?.message.join(' ') : payload?.message
   if (response.status === 404 && (!rawMessage || /^Cannot (GET|POST|PUT|PATCH|DELETE) /.test(rawMessage))) {
-    throw new PostpaidMallError(503, '요청 접수 기능이 아직 세모에 연결되지 않았습니다. 씨마켓몰 운영팀에 알려 주세요.')
+    // 담당자에게는 손님 말로, 운영자에게는 로그로 — 세모에 요청 원장이 배포되기 전의 자리다.
+    console.error('[mall-requests] 세모에 요청 원장 경로가 없습니다(404):', pathname)
+    throw new PostpaidMallError(503, '요청 접수를 준비하고 있습니다. 잠시 후 다시 시도해 주세요.')
   }
 
   if (!response.ok || payload?.success === false || payload?.data === undefined) {
