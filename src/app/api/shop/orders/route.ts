@@ -12,7 +12,7 @@ import {
   type PaymentMethod,
 } from '@/lib/order-types'
 import type { StubOrderLine } from '@/lib/postpaid-mall-stub'
-import { isQuoteValid } from '@/lib/quote-types'
+import { isQuoteValid, QUOTE_UNUSABLE_CODE } from '@/lib/quote-types'
 import { getQuote } from '@/lib/quotes'
 
 /** 세모 주문 등록 대기(55초) + 앞뒤 처리 여유. Vercel 함수가 먼저 끊으면 몰이 결과를 전하지 못한다. */
@@ -235,15 +235,24 @@ export async function POST(request: Request) {
       const quote = await getQuote(member.memberKey, quoteNo)
       if (!isQuoteValid(quote)) {
         return NextResponse.json(
-          { message: '견적서 유효기간이 지났습니다. 장바구니에서 견적서를 다시 발급해 주세요.' },
+          {
+            message: '견적서 유효기간이 지났습니다. 장바구니에서 견적서를 다시 발급해 주세요.',
+            code: QUOTE_UNUSABLE_CODE,
+          },
           { status: 409 },
         )
       }
     } catch (error) {
       if (error instanceof OrderError && error.status === 404) {
-        return NextResponse.json({ message: '견적서를 찾을 수 없습니다.' }, { status: 400 })
+        return NextResponse.json(
+          {
+            message: '견적서를 찾을 수 없습니다. 장바구니에서 견적서를 다시 발급해 주세요.',
+            code: QUOTE_UNUSABLE_CODE,
+          },
+          { status: 400 },
+        )
       }
-      throw error
+      return toErrorResponse(error, '견적서를 확인하지 못했습니다.')
     }
   }
 

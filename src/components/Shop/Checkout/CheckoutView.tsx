@@ -38,7 +38,7 @@ import {
   subscribeShipTo,
   toOrderLine,
 } from '@/lib/place-order'
-import { isQuoteValid } from '@/lib/quote-types'
+import { isQuoteValid, quoteMatchesLines, QUOTE_UNUSABLE_CODE } from '@/lib/quote-types'
 
 interface CheckoutViewProps {
   /** 로그인한 담당자 이름. 없으면 주문 버튼이 로그인 문으로 안내한다. */
@@ -100,8 +100,20 @@ export default function CheckoutView({ viewerName, customerType }: CheckoutViewP
 
   const lines = result.lines
   const n = result.supplierCount
+
+  // 견적서는 지금 조합과 같고 유효기간 안일 때만 쓴다 — 그때 세모가 견적 단가로 주문을 세우므로 화면도
+  // 견적 단가로 그린다. 조합이 다르면 견적번호를 보내지 않는다(보내면 화면과 다른 공급사·금액으로 결제된다).
+  const quoteMatches = activeQuote
+    ? quoteMatchesLines(activeQuote, lines.map(toOrderLine), { ignoreOffers: isCompany })
+    : false
+  const quoteUsable = activeQuote ? isQuoteValid(activeQuote) && quoteMatches : false
+  const lockedPrices = new Map(
+    quoteUsable && activeQuote ? activeQuote.lines.map(line => [line.itemId, line.unitPrice] as const) : [],
+  )
+  const unitPriceOf = (line: (typeof lines)[number]) => lockedPrices.get(line.product.id) ?? line.unitPrice
+
   const amounts = calculateCartAmounts(
-    lines.map(line => ({ unitPrice: line.unitPrice, quantity: line.quantity })),
+    lines.map(line => ({ unitPrice: unitPriceOf(line), quantity: line.quantity })),
     { shipping: result.shipping },
   )
 
@@ -118,7 +130,6 @@ export default function CheckoutView({ viewerName, customerType }: CheckoutViewP
     chosenMethod && methods.includes(chosenMethod) ? chosenMethod : methods[0]
   const prepaid = isPrepaid(paymentMethod)
   const summary = routeSummary(effectiveRoute, n, paymentMethod)
-  const quoteUsable = activeQuote ? isQuoteValid(activeQuote) : false
 
   // 카드·포인트를 고른 순간에만 결제창 재료를 읽는다 — 후불만 쓰는 기관에 씨마켓 연동 오류를
   // 보여 줄 이유가 없다. 한 번 읽으면 그 화면에서는 다시 읽지 않는다.
@@ -198,6 +209,11 @@ export default function CheckoutView({ viewerName, customerType }: CheckoutViewP
       if (error instanceof OrderSubmitError && error.isDefinitive) {
         orderKeyRef.current = null
       }
+      // 견적서가 만료됐거나 세모에 없으면(배포 전 몰 원장에서 받은 번호 등) 내려놓는다 — 들고 있으면
+      // 다시 눌러도 같은 이유로 계속 막힌다.
+      if (error instanceof OrderSubmitError && error.code === QUOTE_UNUSABLE_CODE) {
+        setActiveQuote(null)
+      }
       setOrderError(
         error instanceof OrderSubmitError
           ? error.message
@@ -269,7 +285,11 @@ export default function CheckoutView({ viewerName, customerType }: CheckoutViewP
             >
               <FileText size={13} />
               견적서 {activeQuote.quoteNo}
-              {quoteUsable ? ` · ${formatDate(activeQuote.validUntil)}까지 잠금` : ' · 만료'}
+              {quoteUsable
+                ? ` · ${formatDate(activeQuote.validUntil)}까지 잠금`
+                : !quoteMatches
+                  ? ' · 장바구니 구성이 달라 적용 안 됨'
+                  : ' · 만료'}
             </span>
           )}
         </div>
@@ -612,10 +632,12 @@ export default function CheckoutView({ viewerName, customerType }: CheckoutViewP
                     <p className="text-text truncate font-medium">{line.product.name}</p>
                     <p className="text-muted mt-0.5 truncate">
                       {!isCompany && line.offer.supplierName ? `${line.offer.supplierName} · ` : ''}
-                      {won(line.unitPrice)}원 × {line.quantity}
+                      {won(unitPriceOf(line))}원 × {line.quantity}
                     </p>
                   </div>
-                  <strong className="text-text self-end font-semibold tabular-nums">{won(line.lineTotal)}원</strong>
+                  <strong className="text-text self-end font-semibold tabular-nums">
+                    {won(unitPriceOf(line) * line.quantity)}원
+                  </strong>
                 </li>
               ))}
             </ol>

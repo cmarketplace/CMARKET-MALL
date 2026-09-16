@@ -56,3 +56,28 @@ export interface StorefrontQuote {
 export function isQuoteValid(quote: Pick<StorefrontQuote, 'validUntil'>, now = new Date()): boolean {
   return new Date(quote.validUntil).getTime() >= now.getTime()
 }
+
+/**
+ * 견적서가 **지금 결제 화면의 조합과 같은가.** 세모는 견적번호가 오면 품목·수량만 맞춰 보고 견적서의
+ * 오퍼·단가로 주문을 세운다. 장바구니에서 조합(공급사)을 바꾼 뒤에도 견적번호를 보내면 화면에는 B사
+ * 금액이 보이는데 카드는 A사 견적 단가로 승인됐다(2026-09-16 검수) — 같을 때만 견적번호를 보낸다.
+ *
+ * 공급기업은 오퍼를 고르지 않는다(세모가 최저가로 정한다) — 품목·수량만 본다.
+ */
+export function quoteMatchesLines(
+  quote: Pick<StorefrontQuote, 'kind' | 'lines'>,
+  lines: readonly { itemId: string; quantity: number; offerId: string | null }[],
+  options: { ignoreOffers: boolean },
+): boolean {
+  if (quote.kind !== 'CART' || quote.lines.length !== lines.length) return false
+  const key = (line: { itemId: string; quantity: number; offerId: string | null }) =>
+    options.ignoreOffers
+      ? `${line.itemId}|${line.quantity}`
+      : `${line.itemId}|${line.quantity}|${line.offerId ?? ''}`
+  const expected = quote.lines.map(key).sort()
+  const actual = lines.map(key).sort()
+  return expected.every((value, index) => value === actual[index])
+}
+
+/** 주문 라우트가 «견적서를 쓸 수 없다» 고 답할 때의 코드 — 결제 화면은 활성 견적을 내려놓는다. */
+export const QUOTE_UNUSABLE_CODE = 'QUOTE_UNUSABLE'

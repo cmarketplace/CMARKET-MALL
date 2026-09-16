@@ -78,6 +78,8 @@ export class OrderSubmitError extends Error {
   constructor(
     message: string,
     public readonly status: number,
+    /** 서버가 붙인 사유 코드(예: 견적서를 쓸 수 없음). */
+    public readonly code: string | null = null,
   ) {
     super(message)
     this.name = 'OrderSubmitError'
@@ -112,12 +114,16 @@ export async function placeOrder(input: {
 
   if (response.status === 401) throw new LoginRequiredError()
 
-  const payload = await readPayload<{ order?: PlacedOrder; message?: string }>(response)
+  const payload = await readPayload<{ order?: PlacedOrder; message?: string; code?: string }>(response)
 
   if (!response.ok || !payload?.order) {
     // 서버가 준 문구를 그대로 보여 준다 — 배송지 형식 오류·카드 거절·잔액 부족·연동 미설정처럼
     // 담당자가 읽고 움직일 수 있는 말이 여기 담긴다(세모 402/400/503 문구 그대로).
-    throw new OrderSubmitError(payload?.message ?? '주문을 등록하지 못했습니다.', response.status)
+    throw new OrderSubmitError(
+      payload?.message ?? '주문을 등록하지 못했습니다.',
+      response.status,
+      payload?.code ?? null,
+    )
   }
 
   return payload.order
