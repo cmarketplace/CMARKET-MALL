@@ -246,6 +246,34 @@ SSO 키가 없는 동안은 `.env.local` 의 `SHOP_DEMO_MEMBER` 로 데모 신�
 (`.env.example` 참고 — **운영에 넣으면 안 되는 값이다**). `.env` 파일을 못 만드는 세션이면
 환경변수를 `next dev` 에 인라인으로 넘긴다.
 
+## 조달 허브 — 랜딩 섹션 + 몰 요청 원장 (2026-09-16)
+
+랜딩(`/`) 히어로 아래에 **[공공기관 / 기업]** 선택(`?for=biz`)이 있고, 고른 쪽에 맞춰 섹션 순서가 바뀐다
+(`src/app/page.tsx` 의 `ORDER`). 섹션은 전부 설정 파일에서 그려지고, 공개 화면이라 **단가는 그리지 않는다.**
+
+| 섹션 | 설정(사람이 고치는 곳) | 몰 안 화면 |
+| --- | --- | --- |
+| 이번 달 공동구매 | `config/group-buys.ts` — **매달** 품목 3개·일정 | `/shop/group-buy` (수요조사 참여) |
+| 연간 단가계약 | `config/annual-contracts.ts` — 회차·품목, 낙찰 후 `unitPrice` | `/shop/annual` |
+| 사무실 관리 구독(20종) | `config/office-services.ts` — 계약 끝난 업체만 `vendor` | `/shop/services` (여러 서비스 한 장 견적) |
+| 법정 점검 달력 | `config/legal-inspections.ts` — 법령 확인값만 | 서비스 견적·구해드림으로 연결 |
+| 시즌 베스트 | `config/season-bests.ts` | 몰 검색 + 서비스 선예약 |
+| 기관 유형별 품목 | `config/org-favorites.ts` — `basis: 'md'` 동안 «MD 정리» 표기 | 몰 검색 |
+| 의무구매 계산기 | `config/mandatory-purchase.ts` — 비율 둘은 **고시** 값 | `/shop/request?type=mandatory` |
+| 기관 담당자 도구 | `config/seasons.ts` 의 연말 행사 | `/shop/budget` · `/shop/orders`(CSV) |
+| 구해드림·긴급·토너 | — | `/shop/request?type=sourcing` |
+| 갈아타기(기업) | — | `/shop/request?type=switch` |
+| 꾸러미 | `config/kits.ts` | `/shop/request?type=kit` |
+| 연계구매(기업) | — | `/shop/request?type=social` |
+| 절감액 계산 | — | `/shop/savings` (엑셀 붙여 넣기) |
+
+**요청의 정본은 세모다** — `/external/storefronts/{slug}/requests`(접수·목록·취소·집계). 세모 쪽 구현은
+SEMO_MVP `feat/mall-requests`(마이그레이션 `20260919100000_storefront_requests.sql`, 어드민 쇼핑몰 상세
+«손님 요청» 탭, 접수 알림 메일 `STOREFRONT_REQUEST_NOTIFY_EMAIL`). 칸 검증은 몰이 한다
+(`src/lib/request-validate.ts`) — 세모는 `details` 를 해석하지 않는다. 세모 키가 없으면
+`var/mall-requests-stub.json` 에 남고 화면이 «전달되지 않습니다» 를 적는다. 담당자는 `/shop/requests` 에서
+진행 상황·견적서 번호·회신을 본다.
+
 ## 아직 없는 것
 
 - **씨마켓 SSO 실키** — 몰 전용 파트너 키(`sso:login`)와 authorize 호스트.

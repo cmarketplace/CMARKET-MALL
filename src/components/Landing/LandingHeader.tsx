@@ -13,6 +13,9 @@ export default function LandingHeader() {
           C-Market <span className="font-semibold text-primary">Mall</span>
         </Link>
         <div className="flex items-center justify-end gap-6">
+          <Link href="#services" className="hidden text-sm font-medium text-muted-strong hover:text-primary xl:block">사무실 구독</Link>
+          <Link href="#group-buy" className="hidden text-sm font-medium text-muted-strong hover:text-primary xl:block">공동구매</Link>
+          <Link href="#annual" className="hidden text-sm font-medium text-muted-strong hover:text-primary xl:block">단가계약</Link>
           <Link href="#evidence" className="hidden text-sm font-medium text-muted-strong hover:text-primary lg:block">서비스 소개</Link>
           <Link href="/shop" className="rounded-control bg-primary px-3 py-3 text-xs sm:px-5 sm:text-sm font-semibold text-white transition-colors hover:bg-primary-dark">쇼핑몰<span className="hidden sm:inline"> 바로가기</span></Link>
         </div>
