@@ -1,0 +1,171 @@
+{
+  "measuredAt": "2026-09-16",
+  "internetSource": "다나와·네이버 가격비교 등 같은 상품 최저가(확인 시각별)",
+  "items": [
+    {
+      "key": "toilet-paper-namuya-30",
+      "label": "잘풀리는집 두루마리 화장지",
+      "spec": "22m × 30롤",
+      "mallName": "잘풀리는집 나무야나무야 순수 롤화장지 30롤",
+      "mallPrice": 8640,
+      "internet": {
+        "price": 10500,
+        "shipping": 0,
+        "source": "다나와 최저가 · 쿠팡(무료배송)",
+        "title": "케이에이치커머스 나무야나무야 내추럴 순수 3겹 1개 30롤 22m",
+        "url": "https://search.danawa.com/dsearch.php?query=%EB%82%98%EB%AC%B4%EC%95%BC%EB%82%98%EB%AC%B4%EC%95%BC+22m+30%EB%A1%A4&sort=priceASC",
+        "checkedAt": "2026-09-16T22:43+09:00"
+      }
+    },
+    {
+      "key": "toilet-paper-monalisa-30",
+      "label": "모나리자 녹스 두루마리 화장지",
+      "spec": "3겹 27m × 30롤",
+      "mallName": "모나리자 녹스 나무이야기 27m*30롤(205*320*570mm/3겹)",
+      "mallPrice": 12540,
+      "internet": {
+        "price": 10630,
+        "shipping": 0,
+        "source": "다나와 최저가 · G마켓(무료배송)",
+        "title": "모나리자 녹스 나무이야기 데코 3겹 27M 30롤",
+        "url": "https://prod.danawa.com/info/?pcode=13435208",
+        "checkedAt": "2026-09-16T22:40+09:00"
+      }
+    },
+    {
+      "key": "toilet-paper-codi-30",
+      "label": "코디 에코스마트 화장지",
+      "spec": "3겹 22m × 30롤",
+      "mallName": "코디 3겹 에코스마트 22m*30롤(친환경)",
+      "mallPrice": 12430,
+      "internet": {
+        "price": 11260,
+        "shipping": 0,
+        "source": "다나와 최저가 · 옥션(무료배송)",
+        "title": "코디 에코 스마트 3겹 22m 30롤",
+        "url": "https://prod.danawa.com/info/?pcode=102012149",
+        "checkedAt": "2026-09-16T22:40+09:00"
+      }
+    },
+    {
+      "key": "maxim-mocha-200",
+      "label": "맥심 모카골드 커피믹스",
+      "spec": "12g × 180T+20T",
+      "mallName": "맥심 모카골드 커피믹스(12g/180T+20T/동서식품)",
+      "mallPrice": 40260,
+      "internet": {
+        "price": 28930,
+        "shipping": 0,
+        "source": "다나와 최저가 · 옥션·G마켓(무료배송)",
+        "title": "맥심 모카골드 마일드 커피믹스 200T (180+20)",
+        "url": "https://prod.danawa.com/info/?pcode=4072266",
+        "checkedAt": "2026-09-16T22:41+09:00"
+      }
+    },
+    {
+      "key": "maxim-mocha-400",
+      "label": "맥심 모카골드 커피믹스",
+      "spec": "12g × 400T",
+      "mallName": "맥심 모카골드 커피믹스(12g/400T/동서식품)",
+      "mallPrice": 77880,
+      "internet": {
+        "price": 53480,
+        "shipping": 0,
+        "source": "다나와 최저가 · 옥션·G마켓(무료배송)",
+        "title": "동서식품 맥심 모카골드 마일드 커피믹스 스틱 12g 400개입",
+        "url": "https://prod.danawa.com/info/?pcode=3924195",
+        "checkedAt": "2026-09-16T22:41+09:00"
+      }
+    },
+    {
+      "key": "a4-double-a-75",
+      "label": "더블에이 하이플러스 A4 복사용지",
+      "spec": "75g · 2,500매",
+      "mallName": "하이플러스 복사용지 A4(75g/더블에이/500매*5권/박스)",
+      "mallPrice": 27830,
+      "internet": {
+        "price": 18600,
+        "shipping": 0,
+        "source": "다나와 최저가 · 옥션·G마켓(무료배송)",
+        "title": "더블에이 하이플러스 A4용지 75g 1박스 2500매",
+        "url": "https://prod.danawa.com/info/?pcode=949343",
+        "checkedAt": "2026-09-16T22:41+09:00"
+      }
+    },
+    {
+      "key": "samdasoo-500-20",
+      "label": "제주 삼다수 무라벨",
+      "spec": "500ml × 20병",
+      "mallName": "제주 삼다수 무라벨(500mℓ/20개/광동제약)",
+      "mallPrice": 16610,
+      "internet": {
+        "price": 9531,
+        "shipping": 0,
+        "source": "다나와 최저가 · SSG.COM(무료배송)",
+        "title": "제주삼다수 그린 무라벨 500ml 20개",
+        "url": "https://prod.danawa.com/info/?pcode=14756420",
+        "checkedAt": "2026-09-16T22:44+09:00"
+      }
+    },
+    {
+      "key": "samdasoo-2l-6",
+      "label": "제주 삼다수 무라벨",
+      "spec": "2L × 6병",
+      "mallName": "삼다수 무라벨(2ℓ/6개/광동제약)",
+      "mallPrice": 8250,
+      "internet": {
+        "price": 6300,
+        "shipping": 0,
+        "source": "다나와 최저가 · 롯데ON(무료배송)",
+        "title": "제주삼다수 2L X 6개 (무라벨)",
+        "url": "https://prod.danawa.com/info/?pcode=15059738",
+        "checkedAt": "2026-09-16T22:44+09:00"
+      }
+    },
+    {
+      "key": "handtowel-namuya-5000",
+      "label": "나무야나무야 핸드타월",
+      "spec": "2겹 5,000매",
+      "mallName": "나무야 나무야 핸드타월 5000매(100매*50밴드/225*215mm/2겹/미래생활)",
+      "mallPrice": 43560,
+      "internet": {
+        "price": 29450,
+        "shipping": 0,
+        "source": "다나와 최저가 · 쿠팡(무료배송)",
+        "title": "나무야나무야 핸드타올 50개 100매",
+        "url": "https://prod.danawa.com/info/?pcode=3633057",
+        "checkedAt": "2026-09-16T22:41+09:00"
+      }
+    },
+    {
+      "key": "humedic-sanitizer-500",
+      "label": "휴메딕 크린겔 손소독제",
+      "spec": "500ml 펌프형",
+      "mallName": "휴메딕 크린겔 손소독제(500ml/펌프형/비치형)",
+      "mallPrice": 6490,
+      "internet": {
+        "price": 5630,
+        "shipping": 0,
+        "source": "다나와 최저가 · CJ온스타일(무료배송)",
+        "title": "휴메딕 크린겔 손소독제 500ml 펌프형",
+        "url": "https://search.danawa.com/dsearch.php?query=%ED%9C%B4%EB%A9%94%EB%94%95+%ED%81%AC%EB%A6%B0%EA%B2%94+500ml&sort=priceASC",
+        "checkedAt": "2026-09-16T22:40+09:00"
+      }
+    },
+    {
+      "key": "maxim-zerosugar-100",
+      "label": "맥심 모카골드 제로슈거",
+      "spec": "11.5g × 100T",
+      "mallName": "맥심 모카골드 제로슈거 커피믹스(11.5g/100T/동서식품)",
+      "mallPrice": 31130,
+      "internet": {
+        "price": 22570,
+        "shipping": 0,
+        "source": "다나와 최저가 · 롯데ON(무료배송)",
+        "title": "맥심 모카골드 스테비아 제로슈거 커피믹스 11.5g 100개입",
+        "url": "https://prod.danawa.com/info/?pcode=118368982",
+        "checkedAt": "2026-09-16T22:41+09:00"
+      }
+    }
+  ]
+}

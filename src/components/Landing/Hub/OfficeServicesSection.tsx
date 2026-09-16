@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight, CalendarClock, FileText, Handshake, Scale, Users } from 'lucide-react'
 
 import { serviceIcon } from '@/components/Shop/Hub/serviceIcons'
-import { OFFICE_SERVICES, SERVICE_GROUPS, type ServiceGroupKey } from '@/config/office-services'
+import { OFFICE_SERVICES, SERVICE_GROUPS, servicePhoto, type ServiceGroupKey } from '@/config/office-services'
 
 import { RevealCard, RevealSection } from '../SectionReveal'
 import SectionHeading, { landingButtonClass, landingGhostButtonClass } from './SectionHeading'
@@ -62,34 +63,52 @@ export default function OfficeServicesSection({ month }: { month: number }) {
           <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {services.map(service => {
               const Icon = serviceIcon(service.key)
+              const photo = servicePhoto(service.key)
+              const badges = (
+                <>
+                  {service.preorderMonths?.includes(month) && (
+                    <span className="bg-highlight-soft text-highlight-strong inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold">
+                      <CalendarClock size={11} aria-hidden="true" /> 지금 선예약
+                    </span>
+                  )}
+                  {service.legalKey && (
+                    <span className="text-muted-strong inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold">
+                      <Scale size={11} aria-hidden="true" /> 법정 점검
+                    </span>
+                  )}
+                </>
+              )
               return (
                 <li key={service.key}>
                   <Link
                     href={`/shop/services?service=${service.key}`}
-                    className="group hover:bg-blue-tint-2 flex h-full bg-[var(--hub-card)] flex-col rounded-lg p-6 transition-colors"
+                    className="group hover:bg-blue-tint-2 flex h-full flex-col overflow-hidden rounded-lg bg-[var(--hub-card)] transition-colors"
                   >
-                    <span className="flex items-start justify-between gap-3">
-                      <span className="text-violet flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-[0_6px_18px_rgba(38,28,80,0.06)]">
-                        <Icon size={22} aria-hidden="true" />
-                      </span>
-                      <span className="flex flex-wrap justify-end gap-1.5">
-                        {service.preorderMonths?.includes(month) && (
-                          <span className="bg-highlight-soft text-highlight-strong inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold">
-                            <CalendarClock size={11} aria-hidden="true" /> 지금 선예약
-                          </span>
-                        )}
-                        {service.legalKey && (
-                          <span className="text-muted-strong inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold">
-                            <Scale size={11} aria-hidden="true" /> 법정 점검
-                          </span>
-                        )}
-                      </span>
+                    {/* 실사진 — 서비스가 «무엇을 해 주는지» 를 아이콘보다 빨리 보여 준다. 사진이 없는 서비스는
+                      * 같은 크기의 면에 아이콘을 크게 둬서 한 줄에 섞여도 카드 모양이 흔들리지 않게 한다. */}
+                    <span className="relative block aspect-[3/2] overflow-hidden">
+                      {photo ? (
+                        <Image
+                          src={photo}
+                          alt={`${service.name} 사진`}
+                          fill
+                          sizes="(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 90vw"
+                          className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+                        />
+                      ) : (
+                        <span className="bg-blue-tint-2 text-violet absolute inset-0 flex items-center justify-center">
+                          <Icon size={56} strokeWidth={1.4} aria-hidden="true" />
+                        </span>
+                      )}
+                      <span className="absolute top-3 right-3 flex flex-wrap justify-end gap-1.5">{badges}</span>
                     </span>
-                    <span className="text-text mt-5 block text-lg font-semibold">{service.name}</span>
-                    <span className="text-muted mt-1.5 block text-sm leading-6 break-keep">{service.summary}</span>
-                    <span className="text-violet mt-auto flex items-center gap-1 pt-5 text-sm font-semibold">
-                      견적 받기
-                      <ArrowRight size={15} aria-hidden="true" className="transition-transform group-hover:translate-x-0.5" />
+                    <span className="flex flex-1 flex-col px-6 pt-5 pb-6">
+                      <span className="text-text block text-lg font-semibold">{service.name}</span>
+                      <span className="text-muted mt-1.5 block text-sm leading-6 break-keep">{service.summary}</span>
+                      <span className="text-violet mt-auto flex items-center gap-1 pt-5 text-sm font-semibold">
+                        견적 받기
+                        <ArrowRight size={15} aria-hidden="true" className="transition-transform group-hover:translate-x-0.5" />
+                      </span>
                     </span>
                   </Link>
                 </li>

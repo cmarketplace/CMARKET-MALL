@@ -1,9 +1,11 @@
 import ShopNav from '@/components/Shop/ShopNav'
+import PriceProof from '@/components/Landing/Hub/PriceProof'
 import AnnualContractHub from '@/components/Shop/Hub/AnnualContractHub'
 import { HubHeader } from '@/components/Shop/Requests/RequestKit'
 import { currentAnnualRound } from '@/config/annual-contracts'
 import { daysUntil, ddayLabel, kstToday } from '@/config/seasons'
 import { isRequestStub } from '@/lib/mall-requests'
+import { cheaperItems, getPriceCompare, isPriceProven } from '@/lib/price-compare'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +16,8 @@ export const dynamic = 'force-dynamic'
 export default async function ShopAnnualContractPage() {
   const today = kstToday()
   const round = currentAnnualRound(today)
+  const priceCompare = getPriceCompare()
+  const proofRows = cheaperItems(priceCompare)
 
   return (
     <main className="min-h-screen bg-white">
@@ -38,6 +42,11 @@ export default async function ShopAnnualContractPage() {
                 </span>
               }
             />
+            {priceCompare.measuredAt && isPriceProven(proofRows) && (
+              <div className="max-w-3xl">
+                <PriceProof rows={proofRows} measuredAt={priceCompare.measuredAt} limit={8} />
+              </div>
+            )}
             <AnnualContractHub round={round} stub={isRequestStub()} />
           </>
         ) : (

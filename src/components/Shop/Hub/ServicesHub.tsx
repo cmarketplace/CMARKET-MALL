@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { BadgeCheck, CalendarClock, Check, Plus, Scale, X } from 'lucide-react'
 
@@ -8,6 +9,7 @@ import {
   OFFICE_SERVICES,
   SERVICE_GROUPS,
   SIZING_LABEL,
+  servicePhoto,
   type OfficeService,
   type ServiceGroupKey,
 } from '@/config/office-services'
@@ -143,6 +145,7 @@ export default function ServicesHub({ today, preselected, livePlanKeys, stub }: 
             const isSelected = Boolean(selected[service.key])
             const preorder = service.preorderMonths?.includes(month)
             const live = service.planKey !== null && livePlanKeys.includes(service.planKey)
+            const photo = servicePhoto(service.key)
 
             return (
               <li
@@ -151,6 +154,11 @@ export default function ServicesHub({ today, preselected, livePlanKeys, stub }: 
                   isSelected ? 'border-primary bg-blue-tint' : 'border-border bg-white'
                 }`}
               >
+                {photo && (
+                  <span className="relative -mx-5 -mt-5 mb-4 block aspect-[16/9] overflow-hidden rounded-t-2xl">
+                    <Image src={photo} alt={`${service.name} 사진`} fill sizes="(min-width: 1024px) 380px, 90vw" className="object-cover" />
+                  </span>
+                )}
                 <div className="flex items-start gap-3">
                   <span className="bg-blue-tint-2 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
                     <Icon size={20} aria-hidden="true" />

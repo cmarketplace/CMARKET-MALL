@@ -66,6 +66,37 @@ export interface OfficeService {
   preorderMonths?: number[]
 }
 
+/**
+ * 서비스 카드 사진 — `public/images/services/<key>.jpg`. **실사진**(Unsplash·Pexels 라이선스)만 쓰고
+ * 출처는 같은 폴더 `SOURCES.md` 에 적는다. 목록에 없는 서비스는 아이콘 카드로 그린다.
+ */
+export const SERVICE_PHOTOS: ReadonlySet<string> = new Set<string>([
+  'office-cleaning',
+  'restroom-cleaning',
+  'aircon-cleaning',
+  'pest-control',
+  'entrance-mat',
+  'water-tank-cleaning',
+  'water-purifier',
+  'ice-maker',
+  'bidet',
+  'copier',
+  'coffee-machine',
+  'snack-box',
+  'pantry-supplies',
+  'bottled-water',
+  'document-shredding',
+  'plant-care',
+  'uniform-laundry',
+  'hvac-inspection',
+  'fire-safety',
+  // air-purifier — 사무실 공기청정기 무료 실사진을 못 찾아 아이콘 카드로 둔다(09-16)
+])
+
+export function servicePhoto(key: string): string | null {
+  return SERVICE_PHOTOS.has(key) ? `/images/services/${key}.jpg` : null
+}
+
 export const OFFICE_SERVICES: readonly OfficeService[] = [
   // ── 청소·위생 ──────────────────────────────────────────────
   {

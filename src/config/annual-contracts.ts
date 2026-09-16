@@ -36,6 +36,7 @@ export interface AnnualContractRound {
 
 /** 신청 화면·랜딩에 그대로 나가는 계약 조건. 운영 약관이 확정되면 이 줄만 고친다. */
 export const ANNUAL_CONTRACT_TERMS: readonly string[] = [
+  '입찰 상한은 신청 마감일의 인터넷 최저가 — 그보다 싸게 부른 곳이 없으면 계약하지 않음',
   '계약 기간 12개월 동안 낙찰 단가 고정',
   '매달 수량은 배송 5일 전까지 조정',
   '배송지가 여러 곳이어도 계산서는 매달 한 장',
