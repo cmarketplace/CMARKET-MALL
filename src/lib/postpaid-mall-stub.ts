@@ -225,7 +225,7 @@ export function stubPlaceOrder(input: {
   if (customerType === 'COMPANY' && input.route !== 'SAFE') {
     throw new PostpaidMallError(
       400,
-      '공급기업 주문은 씨마켓 구매대행(안전결제)으로만 받습니다 — 직접구매는 발주기관만 고를 수 있습니다.',
+      '공급기업·씨마켓 직원 주문은 씨마켓 구매대행(안전결제)으로만 받습니다 — 직접구매는 발주기관만 고를 수 있습니다.',
     )
   }
   const paymentMethod: PaymentMethod =
@@ -234,7 +234,7 @@ export function stubPlaceOrder(input: {
     throw new PostpaidMallError(
       400,
       customerType === 'COMPANY'
-        ? '공급기업 주문은 카드 또는 포인트 선불로만 결제할 수 있습니다(후불 불가).'
+        ? '공급기업·씨마켓 직원 주문은 카드 또는 포인트 선불로만 결제할 수 있습니다(후불 불가).'
         : '직접구매는 공급사별 세금계산서 후불입니다 — 카드·포인트 결제는 안전결제에서 고르세요.',
     )
   }

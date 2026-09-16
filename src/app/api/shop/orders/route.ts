@@ -156,10 +156,10 @@ function resolveTerms(
 
   if (customerType === 'COMPANY') {
     if (requestedRoute !== 'SAFE') {
-      return '공급기업 주문은 씨마켓 구매대행(안전결제)으로만 받습니다 — 직접구매는 발주기관만 고를 수 있습니다.'
+      return '공급기업·씨마켓 직원 주문은 씨마켓 구매대행(안전결제)으로만 받습니다 — 직접구매는 발주기관만 고를 수 있습니다.'
     }
     if (requested !== 'CARD' && requested !== 'POINT') {
-      return '공급기업 주문은 카드 또는 포인트 선불로만 결제할 수 있습니다(후불 불가).'
+      return '공급기업·씨마켓 직원 주문은 카드 또는 포인트 선불로만 결제할 수 있습니다(후불 불가).'
     }
     return { route: 'SAFE', paymentMethod: requested }
   }
