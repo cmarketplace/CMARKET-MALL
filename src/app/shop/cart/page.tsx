@@ -18,17 +18,19 @@ export default async function CartPage() {
   // 장바구니 하단에 띄울 추천 상품. 피드가 죽어도 장바구니 자체는 떠야 하므로
   // 실패는 빈 목록으로 흡수하고 캐러셀만 빠진다 (shop/page.tsx 와 달리 안내 배너 없음).
   let products: Product[] = [];
+  // 보는 사람은 피드와 따로 읽는다 — 피드가 죽어도 조합 규칙(발주기관/공급기업)은 맞아야 한다.
+  const member = await getShopMember();
 
   try {
-    const [page, member] = await Promise.all([
-      fetchStorefrontPage({ limit: RECOMMENDED_POOL }),
-      getShopMember(),
-    ]);
+    const page = await fetchStorefrontPage({ limit: RECOMMENDED_POOL });
     products = maskProducts(page.items, member?.tier ?? null);
   } catch (error) {
     if (!(error instanceof SemoFeedError)) throw error;
     console.error("[cart]", error.message);
   }
 
-  return <CartView products={products} isStub={isStubCatalog()} />;
+  // 조합 규칙은 보기 등급(tier)이 아니라 고객 유형이다 — 실명이 보이는 직원도 업체는 고르지 않는다.
+  return (
+    <CartView products={products} isStub={isStubCatalog()} customerType={member?.customerType ?? "COMPANY"} />
+  );
 }

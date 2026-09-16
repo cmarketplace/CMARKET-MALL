@@ -15,7 +15,7 @@ interface ShopNavProps {
   showBack?: boolean
 }
 
-/** 몰 안의 두 번째 줄 — 홈·전체 상품·정기구독·사무실 관리·공동구매·연간 계약·구해드림·시즌·절감액·주문·요청. */
+/** 몰 안의 두 번째 줄 — 홈·전체 상품·정기구독·사무실 관리·공동구매·연간 계약·구해드림·시즌·절감액·주문·요청·내 구독. */
 const SHOP_LINKS: { href: string; label: string; match: (pathname: string) => boolean }[] = [
   { href: '/shop', label: '홈', match: pathname => pathname === '/shop' },
   { href: '/shop/products', label: '전체 상품', match: pathname => pathname.startsWith('/shop/products') },
@@ -27,6 +27,7 @@ const SHOP_LINKS: { href: string; label: string; match: (pathname: string) => bo
   { href: '/shop#season', label: '시즌', match: () => false },
   { href: '/shop/savings', label: '절감액 계산', match: pathname => pathname.startsWith('/shop/savings') },
   { href: '/shop/orders', label: '주문 내역', match: pathname => pathname.startsWith('/shop/orders') },
+  { href: '/shop/subscriptions', label: '내 구독', match: pathname => pathname.startsWith('/shop/subscriptions') },
   { href: '/shop/requests', label: '내 요청', match: pathname => pathname.startsWith('/shop/requests') },
 ]
 

@@ -7,15 +7,18 @@ import { cancelOrder } from '@/lib/place-order'
 
 interface CancelOrderButtonProps {
   orderNo: string
+  /** 카드·포인트로 이미 결제된 주문 — 취소하면 되돌아온다는 말을 버튼에 붙인다. */
+  prepaid?: boolean
 }
 
 /**
- * 주문 취소 — 후불이라 되돌릴 결제가 없다. 상태만 닫힌다.
+ * 주문 취소 — 접수·공급사 수락 대기까지. 선불이면 세모가 취소 직후 카드 승인 취소·포인트
+ * 반환까지 한다(몰은 부르기만 한다).
  *
  * confirm 창 대신 **두 번 누르게** 한다(누르면 「정말 취소」 확정 버튼으로 바뀐다).
  * 실수 클릭 한 번으로 주문이 사라지면 안 되는 화면이다.
  */
-export default function CancelOrderButton({ orderNo }: CancelOrderButtonProps) {
+export default function CancelOrderButton({ orderNo, prepaid = false }: CancelOrderButtonProps) {
   const router = useRouter()
   const [isArmed, setIsArmed] = useState(false)
   const [isCanceling, setIsCanceling] = useState(false)
@@ -60,7 +63,13 @@ export default function CancelOrderButton({ orderNo }: CancelOrderButtonProps) {
             : 'text-muted-strong bg-bg hover:bg-bg-secondary'
         }`}
       >
-        {isCanceling ? '취소하는 중…' : isArmed ? '정말 취소합니다' : '주문 취소'}
+        {isCanceling
+          ? '취소하는 중…'
+          : isArmed
+            ? prepaid
+              ? '정말 취소합니다 (결제 되돌림)'
+              : '정말 취소합니다'
+            : '주문 취소'}
       </button>
     </div>
   )

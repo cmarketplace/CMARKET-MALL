@@ -29,6 +29,11 @@ interface ProductPurchaseProps {
   isStub: boolean;
   /** 제한 고객(공급사) — 서버가 오퍼를 «몰 판매가» 하나로 접어 보냈다. 문구만 그에 맞춘다. */
   restricted: boolean;
+  /**
+   * 업체를 골라 담을 수 있는가 — 발주기관만(고객 유형, 보기 등급과 별개). 공급기업(직원 포함)은 실명·표가
+   * 보여도 고르지 못한다: 세모가 최저가 공급사로 확정하므로, 고른 업체로 담기면 장바구니가 거짓말을 한다.
+   */
+  canChooseSupplier: boolean;
 }
 
 const won = (n: number) => n.toLocaleString("ko-KR");
@@ -43,7 +48,12 @@ const SLIDER_MAX = 100;
  *
  * 오퍼가 하나뿐이거나(한 곳) 아직 안 내려오면 밴드·표 없이 예전처럼 단가 한 줄이다.
  */
-export default function ProductPurchase({ product, isStub, restricted }: ProductPurchaseProps) {
+export default function ProductPurchase({
+  product,
+  isStub,
+  restricted,
+  canChooseSupplier,
+}: ProductPurchaseProps) {
   const [quantity, setQuantity] = useState(1);
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
   const { cartItems, addToCart, updateQuantity, chooseOffer } = useShop();
@@ -51,7 +61,7 @@ export default function ProductPurchase({ product, isStub, restricted }: Product
   const offers = product.offers ?? [];
   const benchmark = product.benchmark ?? null;
   const auto = bestOffer(offers, quantity);
-  const picked = findOffer(offers, selectedOfferId);
+  const picked = canChooseSupplier ? findOffer(offers, selectedOfferId) : null;
   const chosen = picked ?? auto;
   const unitPrice = chosen ? unitPriceAt(chosen, quantity) : product.basePrice;
   const totalPrice = unitPrice * quantity;
@@ -72,8 +82,9 @@ export default function ProductPurchase({ product, isStub, restricted }: Product
     }
   };
 
-  const toggleOffer = (offerId: string) =>
-    setSelectedOfferId(current => (current === offerId ? null : offerId));
+  const toggleOffer = canChooseSupplier
+    ? (offerId: string) => setSelectedOfferId(current => (current === offerId ? null : offerId))
+    : undefined;
 
   return (
     <div className="mt-6">
@@ -151,7 +162,13 @@ export default function ProductPurchase({ product, isStub, restricted }: Product
         <div className="flex items-start justify-between gap-6">
           <div className="min-w-0">
             <p className="text-primary text-xs font-semibold">
-              {restricted || !chosen ? TENANT.priceLabel : picked ? "직접 고른 공급사" : "자동 선정 공급사"}
+              {restricted || !chosen
+                ? TENANT.priceLabel
+                : picked
+                  ? "직접 고른 공급사"
+                  : canChooseSupplier
+                    ? "자동 선정 공급사"
+                    : "최저가 공급사 · 씨마켓 구매대행"}
             </p>
             {restricted && (
               <p className="text-muted mt-1 text-xs leading-5">
@@ -167,9 +184,11 @@ export default function ProductPurchase({ product, isStub, restricted }: Product
                       신뢰 {chosen.trustScore}
                     </span>
                   )}
-                  <span className="bg-white text-muted rounded-full px-2 py-0.5 text-[11px] font-semibold">
-                    {chosen.directPurchase ? "직접 구매 가능" : "안전결제 전용"}
-                  </span>
+                  {canChooseSupplier && (
+                    <span className="bg-white text-muted rounded-full px-2 py-0.5 text-[11px] font-semibold">
+                      {chosen.directPurchase ? "직접 구매 가능" : "안전결제 전용"}
+                    </span>
+                  )}
                 </p>
                 <ul className="text-muted mt-2 space-y-0.5 text-xs leading-5">
                   {auto && (
@@ -230,8 +249,10 @@ export default function ProductPurchase({ product, isStub, restricted }: Product
             onSelect={toggleOffer}
           />
           <p className="text-muted mt-2 text-[11px] leading-relaxed">
-            추이는 공급사가 몰에 등록한 단가의 월별 변동입니다. 업체를 고르지 않으면 수량 기준 최저가로
-            담기고, 세모 자동매칭과 같은 업체가 잡힙니다.
+            추이는 공급사가 몰에 등록한 단가의 월별 변동입니다.{" "}
+            {canChooseSupplier
+              ? "업체를 고르지 않으면 수량 기준 최저가로 담기고, 세모 자동매칭과 같은 업체가 잡힙니다."
+              : "이 계정의 주문은 업체를 고르지 않습니다 — 수량 기준 최저가 공급사로 씨마켓이 대신 구매합니다."}
           </p>
         </section>
       )}

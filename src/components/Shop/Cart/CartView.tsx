@@ -13,18 +13,35 @@ import RecommendedCarousel from "@/components/Shop/RecommendedCarousel";
 import type { Product } from "@/components/Shop/product.data";
 import { useShop } from "@/app/providers/ShopProvider";
 import { useCartCombination } from "@/components/Shop/Cart/useCartCombination";
+import type { CustomerType } from "@/lib/order-types";
 
 interface CartViewProps {
   /** 장바구니 하단 추천 상품. 피드를 못 불러오면 빈 배열이 오고 캐러셀은 렌더되지 않는다. */
   products: Product[];
   /** 예시 카탈로그로 도는 화면인가 — 조합 표 옆에 «예시» 를 붙인다. */
   isStub: boolean;
+  /**
+   * 발주기관 / 공급기업(공급사·직원). 서버가 세션 역할로 정한다. 공급기업은 업체 조합을 고르지 않는다 —
+   * 공급사 실명이 보이는 직원(보기 FULL)이어도 조합 카드·직접 고르기 없이 최저가로 계산한다.
+   */
+  customerType: CustomerType;
 }
 
-export default function CartView({ products, isStub }: CartViewProps) {
+export default function CartView({ products, isStub, customerType }: CartViewProps) {
   const { removeFromCart } = useShop();
-  const { cartItems, selected, result, byMode, canSingle, plan, setMode, toggleSelect, setAllSelected } =
-    useCartCombination();
+  const isCompany = customerType === "COMPANY";
+  const {
+    cartItems,
+    selected,
+    inputs,
+    result,
+    byMode,
+    canSingle,
+    plan,
+    setMode,
+    toggleSelect,
+    setAllSelected,
+  } = useCartCombination({ lowestOnly: isCompany });
 
   /*
    * 담아 둔 값은 «담던 순간» 의 사본이다. 며칠 전에 담은 줄이 그대로 남아 있으면
@@ -37,8 +54,8 @@ export default function CartView({ products, isStub }: CartViewProps) {
 
   const isEmpty = cartItems.length === 0;
   const allSelected = !isEmpty && selected.length === cartItems.length;
-  // 고를 업체가 없으면(제한 고객·오퍼 하나뿐) 조합 카드는 의미가 없다.
-  const hasChoices = cartItems.some(item => (item.product.offers ?? []).length > 1);
+  // 고를 업체가 없으면(제한 고객·오퍼 하나뿐) 조합 카드는 의미가 없다. 공급기업은 고를 권한이 없다.
+  const hasChoices = !isCompany && cartItems.some(item => (item.product.offers ?? []).length > 1);
   const anonymous = !cartItems.some(item => (item.product.offers ?? []).some(offer => offer.supplierId));
   const assignedById = new Map(result.lines.map(line => [line.product.id, line]));
 
@@ -56,7 +73,9 @@ export default function CartView({ products, isStub }: CartViewProps) {
               <p className="text-muted mt-2 text-sm">
                 {hasChoices
                   ? "업체는 자동으로 조합됩니다. 마음에 안 들면 «직접 고르기» 로 품목마다 지정하세요."
-                  : "씨마켓몰 판매가로 담겼습니다. 주문은 씨마켓 안전결제로 진행됩니다."}
+                  : isCompany && !anonymous
+                    ? "업체는 수량 기준 최저가로 자동 배정됩니다(씨마켓 구매대행). 주문은 씨마켓 안전결제로 진행됩니다."
+                    : "씨마켓몰 판매가로 담겼습니다. 주문은 씨마켓 안전결제로 진행됩니다."}
               </p>
             )}
           </div>
@@ -124,11 +143,8 @@ export default function CartView({ products, isStub }: CartViewProps) {
               result={result}
               mode={plan.mode}
               anonymous={anonymous}
-              inputs={selected.map(line => ({
-                product: line.product,
-                quantity: line.quantity,
-                offerId: line.offerId ?? null,
-              }))}
+              safeOnly={isCompany}
+              inputs={inputs}
             />
           </div>
         )}

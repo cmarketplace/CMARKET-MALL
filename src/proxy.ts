@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 
 import { auth } from '@/auth'
 import { IS_SSO_CONFIGURED, isAllowedGroup } from '@/lib/shop-auth'
+import { isDemoMode } from '@/lib/demo-mode'
 
 /**
  * 몰의 문 — «/shop 전체와 /api/shop 전체» 를 지킨다 (2026-09-07 결정. 그 전엔 «내 기록» 두
@@ -46,7 +47,7 @@ const gate = auth((request) => {
 /**
  * SSO 설정이 비어 있을 때의 처신.
  *
- * - **데모 신원(SHOP_DEMO_MEMBER)이 켜져 있으면** 통과 — 파트너 키 발급 전에 주문
+ * - **데모 신원(SHOP_DEMO_MEMBER)이 켜져 있으면** 통과(Vercel 운영 배포에서는 값이 있어도 꺼진다) — 파트너 키 발급 전에 주문
  *   화면을 눌러 보는 임시 통로다(`shop-member.ts`). 운영 환경변수에는 절대 넣지 않는다.
  * - **운영**: 내 기록 화면만 닫는다(열람은 애초에 matcher 밖이라 계속 열려 있다).
  * - **로컬**: 통과 — `auth()` 는 AUTH_SECRET 없이는 요청 자체를 던져 화면이 500 이 된다.
@@ -54,7 +55,7 @@ const gate = auth((request) => {
 export default function proxy(...args: Parameters<typeof gate>) {
   // 데모 신원 — 문을 연다. «누가» 는 shop-member.ts 가 채우고, 실세션이 있으면
   // 언제나 실세션이 이긴다.
-  if (process.env.SHOP_DEMO_MEMBER?.trim()) {
+  if (isDemoMode()) {
     return NextResponse.next()
   }
 

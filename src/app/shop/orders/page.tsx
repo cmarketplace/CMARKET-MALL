@@ -4,9 +4,12 @@ import ShopNav from '@/components/Shop/ShopNav'
 import CancelOrderButton from '@/components/Shop/Orders/CancelOrderButton'
 import {
   CANCELABLE_STATUSES,
+  DEAL_TYPE_LABEL,
+  isPrepaid,
   ORDER_ROUTE_LABEL,
   ORDER_STATUS_HINT,
-  ORDER_STATUS_LABEL,
+  orderStatusLabel,
+  PAYMENT_METHOD_LABEL,
   type StorefrontOrder,
 } from '@/lib/order-types'
 import { listOrders, OrderError } from '@/lib/orders'
@@ -18,9 +21,9 @@ export const dynamic = 'force-dynamic'
 /**
  * 내 주문 내역.
  *
- * (연동 후에는) 씨마켓 「나의 거래 관리」에도 뜨지만, 담당자가 몰에서 나가지 않고
- * 「내 주문이 어디쯤인지 · 언제 결제하는지」를 보는 자리가 여기다. 접수·공급사 확정
- * 단계까지는 여기서 바로 취소할 수 있다(후불이라 되돌릴 결제는 없다).
+ * 씨마켓 「나의 거래 관리」에도 뜨지만, 담당자가 몰에서 나가지 않고
+ * 「내 주문이 어디쯤인지 · 언제 얼마를 내는지」를 보는 자리가 여기다. 접수·공급사 수락 대기
+ * 단계까지는 여기서 바로 취소할 수 있다(선불은 취소 시 카드 승인 취소·포인트 반환).
  */
 export default async function ShopOrdersPage() {
   const member = await getShopMember()
@@ -56,7 +59,7 @@ export default async function ShopOrdersPage() {
         <div className="mx-auto w-full max-w-2xl">
           <h1 className="text-text text-2xl font-semibold">주문 내역</h1>
           <p className="text-muted mt-1 text-sm leading-6">
-            주문한 건과 진행 상태입니다. 결제는 납품 검수가 끝난 뒤 후불로 합니다.
+            주문한 건과 진행 상태입니다. 카드·포인트는 주문 때 결제됐고, 세금계산서 후불은 납품 검수 뒤 청구됩니다.
           </p>
           {orders.length > 0 && (
             // 인수인계용 — 담당자가 바뀌면 새 담당자는 이 목록을 몰에서 볼 수 없다.
@@ -90,6 +93,15 @@ export default async function ShopOrdersPage() {
               {orders.map(order => {
                 const isCanceled = order.status === 'CANCELED'
                 const hint = ORDER_STATUS_HINT[order.status]
+                const prepaid = isPrepaid(order.paymentMethod)
+                const meta = [
+                  formatOrderedAt(order.createdAt),
+                  ORDER_ROUTE_LABEL[order.route],
+                  order.dealType === 'CMARKET_AGENCY' ? DEAL_TYPE_LABEL.CMARKET_AGENCY : null,
+                  order.paymentMethod ? PAYMENT_METHOD_LABEL[order.paymentMethod] : null,
+                  order.supplierCount > 1 ? `공급사 ${order.supplierCount}곳` : null,
+                  order.quoteNo ? `견적서 ${order.quoteNo}` : null,
+                ].filter(Boolean)
 
                 return (
                   <li key={order.orderNo} className="bg-light-soft rounded-2xl p-5">
@@ -101,10 +113,7 @@ export default async function ShopOrdersPage() {
                         >
                           {order.orderNo}
                         </Link>
-                        <p className="text-muted mt-0.5 text-xs">
-                          {formatOrderedAt(order.createdAt)} · {ORDER_ROUTE_LABEL[order.route]}
-                          {order.supplierCount > 1 && ` · 공급사 ${order.supplierCount}곳`}
-                        </p>
+                        <p className="text-muted mt-0.5 text-xs">{meta.join(' · ')}</p>
                       </div>
 
                       <span
@@ -114,7 +123,7 @@ export default async function ShopOrdersPage() {
                             : 'bg-highlight-soft text-highlight-strong'
                         }`}
                       >
-                        {ORDER_STATUS_LABEL[order.status]}
+                        {orderStatusLabel(order.status)}
                       </span>
                     </div>
 
@@ -132,7 +141,9 @@ export default async function ShopOrdersPage() {
 
                     <div className="border-bg mt-3 flex items-end justify-between border-t border-dashed pt-3">
                       <div className="text-sm">
-                        <span className="text-muted">청구 예정 금액 </span>
+                        <span className="text-muted">
+                          {isCanceled ? '취소된 금액 ' : prepaid ? '결제된 금액 ' : '청구 예정 금액 '}
+                        </span>
                         <strong
                           className={`font-semibold ${isCanceled ? 'text-muted line-through' : 'text-primary'}`}
                         >
@@ -141,7 +152,7 @@ export default async function ShopOrdersPage() {
                       </div>
 
                       {CANCELABLE_STATUSES.includes(order.status) && (
-                        <CancelOrderButton orderNo={order.orderNo} />
+                        <CancelOrderButton orderNo={order.orderNo} prepaid={prepaid} />
                       )}
                     </div>
                   </li>
