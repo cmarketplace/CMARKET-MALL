@@ -5,6 +5,13 @@ import Link from 'next/link'
 import { Link2, Loader2 } from 'lucide-react'
 
 import type { Product } from '@/components/Shop/product.data'
+import {
+  CARD_FEE_RATE,
+  ERRAND_FEE_PER_REQUEST,
+  ERRAND_PAYMENT_LABEL,
+  estimateErrand,
+  type ErrandPayment,
+} from '@/config/link-errand'
 import { extractUrl, LINK_SHOPS, shopOf } from '@/lib/link-shops'
 import type { LinkPreview } from '@/lib/link-preview'
 
@@ -22,7 +29,9 @@ interface PreviewState {
 const IDLE: PreviewState = { status: 'idle', url: null, preview: null, matches: [] }
 
 /**
- * 링크로 사기 — 인터넷에서 본 상품 링크를 붙여 넣으면 같은 제품으로 견적을 받는다(요청 SOURCING, refKey `link`).
+ * 링크로 사기(대신 사 드림) — 인터넷에서 고른 상품 링크를 붙여 넣으면 씨마켓플레이스가 대신 주문한다
+ * (요청 SOURCING, refKey `link`). 가격 규칙은 `config/link-errand.ts`: 심부름값 건당 2,000원(부가세 포함)과
+ * 카드수수료(카드일 때만)를 **제품 단가에 녹여** 견적한다 — 화면의 «예상 견적» 도 같은 함수로 센다.
  *
  * 붙여 넣는 순간 미리보기(제목·이미지·링크에 보이는 가격)를 불러오고, 몰에 비슷한 상품이 이미 있으면
  * 그 자리에서 보여 준다 — 견적을 기다리지 않고 바로 살 수 있으면 그게 제일 빠르다.
@@ -43,6 +52,8 @@ export default function LinkForm({
   const [seenPrice, setSeenPrice] = useState('')
   const [priceTouched, setPriceTouched] = useState(false)
   const [quantity, setQuantity] = useState(initialQuantity)
+  const [shipping, setShipping] = useState('')
+  const [payment, setPayment] = useState<ErrandPayment>('transfer')
   const [neededBy, setNeededBy] = useState('')
   const [allowAlternative, setAllowAlternative] = useState(true)
   const [address, setAddress] = useState('')
@@ -55,6 +66,12 @@ export default function LinkForm({
 
   const url = extractUrl(linkText)
   const shop = url ? shopOf(url) : null
+  const estimate = estimateErrand({
+    linkUnitPrice: Number(seenPrice) || 0,
+    quantity: Number(quantity) || 0,
+    shipping: Number(shipping) || 0,
+    payment,
+  })
 
   const loadPreview = async (target: string) => {
     setState({ status: 'loading', url: target, preview: null, matches: [] })
@@ -112,6 +129,14 @@ export default function LinkForm({
           { label: '상품명(링크)', value: title ?? '' },
           { label: '링크에서 본 가격', value: seenPrice ? `${won(Number(seenPrice))}원` : '' },
           { label: '수량', value: `${won(Number(quantity))}개` },
+          { label: '링크 배송비', value: shipping ? `${won(Number(shipping))}원` : '' },
+          { label: '결제 방법', value: ERRAND_PAYMENT_LABEL[payment] },
+          {
+            label: '예상 견적',
+            value: estimate
+              ? `제품 단가 ${won(estimate.unitPrice)}원 × ${won(Number(quantity))}개 = ${won(estimate.total)}원(부가세 포함, 심부름값 ${won(ERRAND_FEE_PER_REQUEST)}원 포함${payment === 'card' ? (estimate.cardFee === null ? ', 카드수수료 별도' : `, 카드수수료 ${won(estimate.cardFee)}원 포함`) : ''})`
+              : '',
+          },
           { label: '필요일', value: neededBy },
           { label: '대체품', value: allowAlternative ? '같은 규격이면 다른 브랜드도 가능' : '같은 제품만' },
           { label: '주소', value: address },
@@ -140,8 +165,8 @@ export default function LinkForm({
       needsLogin={needsLogin}
       busy={busy}
       next="/shop/request?type=link"
-      submitLabel="이 제품 견적 받기"
-      footnote="견적서에는 링크에 보이는 가격과 씨마켓몰 견적가를 나란히 적습니다. 견적을 보고 확정하기 전에는 아무것도 주문되지 않습니다."
+      submitLabel="대신 사 달라고 요청하기"
+      footnote={`견적서에는 심부름값(건당 ${won(ERRAND_FEE_PER_REQUEST)}원, 부가세 포함)을 제품 단가에 포함해 적습니다. 주문 시점 판매가 기준이고 쿠폰·카드할인·멤버십가는 적용되지 않으며, 반품 배송비는 실비입니다. 견적을 보고 확정하기 전에는 주문하지 않습니다.`}
     >
       <Field label="상품 링크" hint="공유하기로 복사한 문구 그대로 붙여 넣어도 됩니다">
         <span className="relative block">
@@ -212,7 +237,7 @@ export default function LinkForm({
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field label="수량">
           <input value={quantity} onChange={event => setQuantity(event.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="20" className={inputClass} />
         </Field>
@@ -227,9 +252,54 @@ export default function LinkForm({
             className={inputClass}
           />
         </Field>
+        <Field label="링크 배송비" hint="원 · 무료면 비워 두기">
+          <input value={shipping} onChange={event => setShipping(event.target.value.replace(/\D/g, ''))} inputMode="numeric" className={inputClass} />
+        </Field>
         <Field label="필요일" hint="선택">
           <input type="date" min={today} value={neededBy} onChange={event => setNeededBy(event.target.value)} className={inputClass} />
         </Field>
+      </div>
+
+      <fieldset>
+        <legend className="text-text text-sm font-semibold">결제 방법</legend>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {(Object.keys(ERRAND_PAYMENT_LABEL) as ErrandPayment[]).map(option => (
+            <label
+              key={option}
+              className={`cursor-pointer rounded-control px-3.5 py-2 text-sm transition-colors ${
+                payment === option ? 'bg-primary font-semibold text-white' : 'bg-light-soft text-muted-strong hover:bg-bg'
+              }`}
+            >
+              <input type="radio" name="errand-payment" value={option} checked={payment === option} onChange={() => setPayment(option)} className="sr-only" />
+              {ERRAND_PAYMENT_LABEL[option]}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <div className="bg-blue-tint rounded-xl p-4" aria-live="polite">
+        <p className="text-text text-sm font-semibold">예상 견적</p>
+        {estimate ? (
+          <>
+            <p className="text-text mt-1 text-lg font-semibold tabular-nums">
+              제품 단가 {won(estimate.unitPrice)}원 × {won(Number(quantity))}개 = {won(estimate.total)}원
+              {payment === 'card' && estimate.cardFee === null && (
+                <span className="text-primary ml-1.5 text-sm font-semibold">+ 카드수수료 별도</span>
+              )}
+            </p>
+            <p className="text-muted mt-1 text-xs leading-5">
+              링크 판매가 {won(Number(seenPrice))}원 × {won(Number(quantity))}개
+              {Number(shipping) > 0 && ` + 배송비 ${won(Number(shipping))}원`} + 심부름값 {won(estimate.errandFee)}원
+              {payment === 'card' &&
+                (estimate.cardFee === null
+                  ? ' + 카드수수료(결제 시 확정)'
+                  : ` + 카드수수료 ${won(estimate.cardFee)}원(${((CARD_FEE_RATE ?? 0) * 100).toFixed(1)}%)`)}
+              을 수량으로 나눈 값입니다. 부가세 포함 · 공급가액 {won(estimate.supply)}원 · 부가세 {won(estimate.vat)}원
+            </p>
+          </>
+        ) : (
+          <p className="text-muted mt-1 text-xs">링크에서 본 가격과 수량을 넣으면 제품 단가를 계산해 보여 드립니다.</p>
+        )}
       </div>
       <label className="text-text flex items-center gap-2 text-sm">
         <input type="checkbox" checked={allowAlternative} onChange={event => setAllowAlternative(event.target.checked)} className="accent-primary h-4 w-4" />
