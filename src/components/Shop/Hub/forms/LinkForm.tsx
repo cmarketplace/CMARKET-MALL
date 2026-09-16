@@ -18,6 +18,7 @@ import type { LinkPreview } from '@/lib/link-preview'
 import { Field, inputClass, RequestFormFrame, RequestReceived, useContactDraft, useRequestSubmit } from '../../Requests/RequestKit'
 
 const won = (n: number) => n.toLocaleString('ko-KR')
+const formatRate = (rate: number | null) => (rate === null ? '' : `${Number((rate * 100).toFixed(2))}%`)
 
 interface PreviewState {
   status: 'idle' | 'loading' | 'done'
@@ -293,7 +294,7 @@ export default function LinkForm({
               {payment === 'card' &&
                 (estimate.cardFee === null
                   ? ' + 카드수수료(결제 시 확정)'
-                  : ` + 카드수수료 ${won(estimate.cardFee)}원(${((CARD_FEE_RATE ?? 0) * 100).toFixed(1)}%)`)}
+                  : ` + 카드수수료 ${won(estimate.cardFee)}원(${formatRate(CARD_FEE_RATE)})`)}
               을 수량으로 나눈 값입니다. 부가세 포함 · 공급가액 {won(estimate.supply)}원 · 부가세 {won(estimate.vat)}원
             </p>
           </>
