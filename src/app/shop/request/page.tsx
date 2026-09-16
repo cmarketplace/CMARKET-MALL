@@ -5,6 +5,7 @@ import { findKit } from '@/config/kits'
 import { findMandatoryCategory } from '@/config/mandatory-purchase'
 import { findService } from '@/config/office-services'
 import { kstToday } from '@/config/seasons'
+import { extractUrl } from '@/lib/link-shops'
 import { isRequestStub } from '@/lib/mall-requests'
 
 export const dynamic = 'force-dynamic'
@@ -18,7 +19,7 @@ export const dynamic = 'force-dynamic'
 export default async function ShopRequestPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; service?: string; kit?: string; urgent?: string; item?: string; cats?: string; amount?: string }>
+  searchParams: Promise<{ type?: string; service?: string; kit?: string; urgent?: string; item?: string; cats?: string; amount?: string; url?: string; qty?: string }>
 }) {
   const params = await searchParams
   const kind: RequestKind = (REQUEST_KINDS as readonly string[]).includes(params.type ?? '')
@@ -38,6 +39,8 @@ export default async function ShopRequestPage({
           initialItem={(params.item ?? '').slice(0, 80)}
           initialCategories={(params.cats ?? '').split(',').filter(key => findMandatoryCategory(key))}
           initialAmount={/^\d{1,13}$/.test(params.amount ?? '') ? (params.amount as string) : ''}
+          initialUrl={extractUrl(params.url ?? '') ?? ''}
+          initialQuantity={/^\d{1,7}$/.test(params.qty ?? '') ? (params.qty as string) : ''}
           stub={isRequestStub()}
         />
       </div>

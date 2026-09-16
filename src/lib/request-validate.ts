@@ -143,7 +143,10 @@ export function validateRequestBody(body: unknown, today = kstToday()): Result {
       break
     }
     case 'SOURCING':
-      if (refKey !== null && refKey !== 'urgent') return fail('요청 종류를 확인해 주세요.')
+      if (refKey !== null && refKey !== 'urgent' && refKey !== 'link') return fail('요청 종류를 확인해 주세요.')
+      if (refKey === 'link' && !details.some(field => field.label === '상품 링크' && /^https?:\/\//i.test(field.value))) {
+        return fail('상품 링크를 http 로 시작하는 주소로 붙여 넣어 주세요.')
+      }
       break
     case 'SOCIAL_VALUE':
       break

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { HubHeader } from '../Requests/RequestKit'
 import { REQUEST_KINDS, type RequestKind } from './request-kinds'
 import KitForm from './forms/KitForm'
+import LinkForm from './forms/LinkForm'
 import MandatoryForm from './forms/MandatoryForm'
 import SocialValueForm from './forms/SocialValueForm'
 import SourcingForm from './forms/SourcingForm'
@@ -12,6 +13,13 @@ import SwitchForm from './forms/SwitchForm'
 
 
 const KIND_COPY: Record<RequestKind, { tab: string; eyebrow: string; title: string; description: string }> = {
+  link: {
+    tab: '링크로 사기',
+    eyebrow: '인터넷에서 본 그 제품',
+    title: '링크만 붙여 넣으면 같은 제품으로 견적을 드립니다',
+    description:
+      '쿠팡·네이버·11번가 등에서 본 상품 링크를 붙여 넣어 주세요. 같은 제품을 씨마켓 공급사에서 찾아, 링크에 보이는 가격과 나란히 적은 견적서로 회신합니다. 견적을 보고 비싸면 사지 않으셔도 됩니다.',
+  },
   sourcing: {
     tab: '구해드림',
     eyebrow: '못 찾은 물건 · 급한 물건',
@@ -58,6 +66,8 @@ interface RequestHubProps {
   initialItem: string
   initialCategories: string[]
   initialAmount: string
+  initialUrl: string
+  initialQuantity: string
   stub: boolean
 }
 
@@ -89,6 +99,9 @@ export default function RequestHub(props: RequestHubProps) {
 
       <HubHeader eyebrow={copy.eyebrow} title={copy.title} description={copy.description} />
 
+      {props.kind === 'link' && (
+        <LinkForm key="link" today={props.today} initialUrl={props.initialUrl} initialQuantity={props.initialQuantity} stub={props.stub} />
+      )}
       {props.kind === 'sourcing' && (
         <SourcingForm key="sourcing" today={props.today} initialUrgent={props.initialUrgent} initialItem={props.initialItem} stub={props.stub} />
       )}
