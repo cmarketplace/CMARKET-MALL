@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 
 import { auth } from '@/auth'
 import { IS_SSO_CONFIGURED, viewerTierOf, type ViewerTier } from '@/lib/shop-auth'
+import { isDemoMode } from '@/lib/demo-mode'
 
 /**
  * 서버 라우트·서버 컴포넌트가 「누가」를 정하는 유일한 자리.
@@ -46,9 +47,7 @@ export interface ShopMember {
 /** 데모 역할을 바꾸는 쿠키 — `/api/demo/role?role=SUPPLIER` 가 심는다. 데모 신원이 켜진 환경에서만 읽는다. */
 export const DEMO_ROLE_COOKIE = 'cpoint.demoRole'
 
-export function isDemoMode(): boolean {
-  return Boolean(process.env.SHOP_DEMO_MEMBER?.trim())
-}
+export { isDemoMode } from '@/lib/demo-mode'
 
 /**
  * 데모 신원의 등급. 기본은 `SHOP_DEMO_ROLE`(없으면 BUYER)이고, 쿠키가 있으면 그게 이긴다 —
@@ -60,6 +59,7 @@ export function isDemoMode(): boolean {
  * (카드·포인트 지갑이 있는)여야 하고, 발주기관 id 와 같은 사람이 아니어야 한다.
  */
 export async function demoMember(): Promise<ShopMember | null> {
+  if (!isDemoMode()) return null
   const memberId = process.env.SHOP_DEMO_MEMBER?.trim()
   if (!memberId) return null
 
