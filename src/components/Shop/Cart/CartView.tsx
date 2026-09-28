@@ -56,7 +56,7 @@ export default function CartView({ products, isStub }: CartViewProps) {
               <p className="text-muted mt-2 text-sm">
                 {hasChoices
                   ? "업체는 자동으로 조합됩니다. 마음에 안 들면 «직접 고르기» 로 품목마다 지정하세요."
-                  : "씨마켓몰 판매가로 담겼습니다. 주문은 씨마켓 안전결제로 진행됩니다."}
+                  : "세모네모 판매가로 담겼습니다. 주문은 씨마켓 안전결제로 진행됩니다."}
               </p>
             )}
           </div>

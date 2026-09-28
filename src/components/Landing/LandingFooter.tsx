@@ -11,7 +11,7 @@ export default function LandingFooter() {
             <Link href="/" aria-label={`${TENANT.shopName} 소개`}>
               <Image src="/images/cmarket-logo.png" alt={TENANT.orgName} width={525} height={105} className="h-auto w-[132px]" />
             </Link>
-            <p className="mt-5 text-sm font-medium text-text">기관 구매를 더 간편하게 씨마켓몰</p>
+            <p className="mt-5 text-sm font-medium text-text">기관 구매를 더 간편하게 세모네모</p>
             <p className="mt-2 text-sm leading-6 text-muted">승인된 상품과 공급 단가를 한곳에서 만나보세요.</p>
           </div>
           <nav aria-label="푸터 메뉴" className="flex gap-6 text-sm font-medium text-muted-strong">

@@ -22,7 +22,7 @@ export default function Evidence() {
           </h2>
 
           <p className="text-muted mt-6 text-[15px] leading-[1.8] sm:text-base">
-            공급사를 찾고 견적을 모으는 일은 씨마켓몰이 미리 끝내 둡니다.
+            공급사를 찾고 견적을 모으는 일은 세모네모가 미리 끝내 둡니다.
             <br className="hidden sm:block" />
             담당자는 승인된 목록에서 고르기만 하면 됩니다.
           </p>
@@ -31,7 +31,7 @@ export default function Evidence() {
         <RevealCard className="mt-14 grid gap-5 lg:grid-cols-3">
           <EvidenceCard
             title="승인된 품목만 보입니다"
-            body="씨마켓몰이 승인한 공급사가 실제로 공급하는 품목만 목록에 오릅니다. 카탈로그를 뒤져 «파는 곳이 있는지» 확인할 일이 없습니다."
+            body="세모네모가 승인한 공급사가 실제로 공급하는 품목만 목록에 오릅니다. 카탈로그를 뒤져 «파는 곳이 있는지» 확인할 일이 없습니다."
           >
             <CategoryChips />
           </EvidenceCard>

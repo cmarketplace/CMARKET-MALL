@@ -51,7 +51,7 @@ export default function Stats({ stats }: StatsProps) {
 
       {/* 출처·기준일. 숫자 옆에 이게 없으면 그 숫자는 주장일 뿐이다. */}
       <p className="text-muted mt-6 text-center text-xs">
-        {stats.measuredAt.replace(/-/g, '.')} 기준 · 씨마켓몰 승인 목록
+        {stats.measuredAt.replace(/-/g, '.')} 기준 · 세모네모 승인 목록
       </p>
     </section>
   )
