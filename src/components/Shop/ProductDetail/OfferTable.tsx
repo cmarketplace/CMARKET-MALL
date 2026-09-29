@@ -9,7 +9,11 @@ interface OfferTableProps {
   quantity: number
   bestOfferId: string | null
   selectedOfferId: string | null
-  onSelect: (offerId: string) => void
+  /**
+   * 줄을 누르면 그 업체로 담는다. 없으면 **읽기 전용** — 공급기업(공급사·직원) 손님은 업체도 경로도 고르지
+   * 않으므로(세모가 최저가·안전결제로 확정) 줄 선택과 «주문 방식» 칸을 뺀다. 실명·단가는 보기 등급대로 보인다.
+   */
+  onSelect?: (offerId: string) => void
 }
 
 const won = (n: number) => n.toLocaleString('ko-KR')
@@ -17,7 +21,7 @@ const won = (n: number) => n.toLocaleString('ko-KR')
 /**
  * 공급사별 값 표 — 단가 · N개 합계 · 수량 구간 · 6개월 추이 · 리드타임 · 신뢰 · 주문 방식.
  *
- * 줄을 누르면 그 업체로 담긴다(«직접 고르기»). 값이 없는 칸은 «—» 가 아니라 비워 둔다 —
+ * 줄을 누르면 그 업체로 담긴다(«직접 고르기», 발주기관만). 값이 없는 칸은 «—» 가 아니라 비워 둔다 —
  * 세모가 아직 안 주는 값을 화면이 «없음» 으로 단정하지 않는다.
  */
 export default function OfferTable({
@@ -32,6 +36,7 @@ export default function OfferTable({
   const hasTiers = ranked.some(offer => offer.tiers.length > 0)
   const hasLead = ranked.some(offer => offer.leadDays !== null)
   const hasTrust = ranked.some(offer => offer.trustScore !== null)
+  const selectable = Boolean(onSelect)
 
   return (
     <div className="relative">
@@ -46,7 +51,7 @@ export default function OfferTable({
               {hasTrend && <th className="py-2 pr-3 font-medium">6개월 추이</th>}
               {hasLead && <th className="py-2 pr-3 font-medium">리드타임</th>}
               {hasTrust && <th className="py-2 pr-3 text-right font-medium">신뢰</th>}
-              <th className="py-2 font-medium">주문 방식</th>
+              {selectable && <th className="py-2 font-medium">주문 방식</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-bg">
@@ -57,16 +62,18 @@ export default function OfferTable({
               return (
                 <tr
                   key={offer.offerId}
-                  onClick={() => onSelect(offer.offerId)}
-                  aria-selected={isSelected}
-                  className={`cursor-pointer transition-colors ${isBest ? 'bg-light-soft' : 'hover:bg-light-soft'} ${
+                  onClick={onSelect ? () => onSelect(offer.offerId) : undefined}
+                  aria-selected={selectable ? isSelected : undefined}
+                  className={`transition-colors ${selectable ? 'cursor-pointer' : ''} ${
+                    isBest ? 'bg-light-soft' : selectable ? 'hover:bg-light-soft' : ''
+                  } ${
                     isSelected ? 'shadow-[inset_3px_0_0_var(--color-primary)]' : ''
                   }`}
                 >
                   <td className="py-3 pr-3 whitespace-nowrap">
                     <p className="text-text font-semibold">{supplierLabel(offer)}</p>
                     <p className="text-muted text-[11px]">
-                      {isBest ? '자동 선정' : isSelected ? '직접 고름' : '선택하려면 클릭'}
+                      {isBest ? '자동 선정' : !selectable ? '' : isSelected ? '직접 고름' : '선택하려면 클릭'}
                     </p>
                   </td>
                   <td className="text-text py-3 pr-3 text-right font-semibold tabular-nums whitespace-nowrap">{won(unit)}원</td>
@@ -93,11 +100,13 @@ export default function OfferTable({
                       {offer.trustScore !== null ? offer.trustScore : ''}
                     </td>
                   )}
-                  <td className="py-3 whitespace-nowrap">
-                    <span className="text-muted text-xs">
-                      {offer.directPurchase ? '안전결제 · 직접 구매' : '안전결제만'}
-                    </span>
-                  </td>
+                  {selectable && (
+                    <td className="py-3 whitespace-nowrap">
+                      <span className="text-muted text-xs">
+                        {offer.directPurchase ? '안전결제 · 직접 구매' : '안전결제만'}
+                      </span>
+                    </td>
+                  )}
                 </tr>
               )
             })}

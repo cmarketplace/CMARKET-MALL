@@ -22,6 +22,8 @@ interface CartSummaryProps {
   mode: CombinationMode
   /** 업체가 전부 익명(제한 고객·미제공) — 업체·배송·계산서 수와 업체별 소계를 그리지 않는다. */
   anonymous?: boolean
+  /** 공급기업 — 안전결제뿐이라 계산서는 업체 수와 무관하게 씨마켓 발행 1장이다(직접 구매 없음). */
+  safeOnly?: boolean
 }
 
 const won = (n: number) => n.toLocaleString('ko-KR')
@@ -40,7 +42,13 @@ const formatDate = (iso: string) =>
  *
  * 금액은 `cart-amounts.ts` 만 쓴다(배송비 포함 총액 = 청구 예정액).
  */
-export default function CartSummary({ result, inputs, mode, anonymous = false }: CartSummaryProps) {
+export default function CartSummary({
+  result,
+  inputs,
+  mode,
+  anonymous = false,
+  safeOnly = false,
+}: CartSummaryProps) {
   const activeQuote = useSyncExternalStore(
     subscribeActiveQuote,
     getActiveQuoteSnapshot,
@@ -100,7 +108,7 @@ export default function CartSummary({ result, inputs, mode, anonymous = false }:
             {[
               ['업체', `${n}곳`],
               ['배송', `${n}건`],
-              ['계산서', n > 1 ? `${n}장 · 안전결제 1장` : '1장'],
+              ['계산서', n > 1 && !safeOnly ? `${n}장 · 안전결제 1장` : '1장'],
             ].map(([label, value]) => (
               <div key={label}>
                 <p className="text-muted text-[11px]">{label}</p>

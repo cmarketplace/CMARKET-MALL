@@ -1,0 +1,117 @@
+{
+  "measuredAt": "2026-09-16",
+  "basis": "day",
+  "days": 1,
+  "items": [
+    {
+      "key": "toilet-paper-namuya-30",
+      "label": "잘풀리는집 나무야나무야 두루마리 화장지",
+      "spec": "22m × 30롤",
+      "median": 14075,
+      "n": 10,
+      "min": 10000,
+      "max": 40070,
+      "sourceUrl": "https://search.danawa.com/dsearch.php?query=%EB%82%98%EB%AC%B4%EC%95%BC%EB%82%98%EB%AC%B4%EC%95%BC+22m+30%EB%A1%A4"
+    },
+    {
+      "key": "toilet-paper-monalisa-30",
+      "label": "모나리자 녹스 나무이야기 화장지",
+      "spec": "3겹 27m × 30롤",
+      "median": 13150,
+      "n": 129,
+      "min": 8940,
+      "max": 26370,
+      "sourceUrl": "https://prod.danawa.com/info/?pcode=13435208"
+    },
+    {
+      "key": "toilet-paper-codi-30",
+      "label": "코디 에코스마트 화장지",
+      "spec": "3겹 22m × 30롤",
+      "median": 19640,
+      "n": 343,
+      "min": 11780,
+      "max": 47770,
+      "sourceUrl": "https://prod.danawa.com/info/?pcode=102012149"
+    },
+    {
+      "key": "maxim-mocha-200",
+      "label": "맥심 모카골드 마일드 커피믹스",
+      "spec": "12g × 180T+20T",
+      "median": 38650,
+      "n": 442,
+      "min": 27180,
+      "max": 69240,
+      "sourceUrl": "https://prod.danawa.com/info/?pcode=4072266"
+    },
+    {
+      "key": "maxim-mocha-400",
+      "label": "맥심 모카골드 마일드 커피믹스",
+      "spec": "12g × 400T",
+      "median": 62770,
+      "n": 775,
+      "min": 53430,
+      "max": 67090,
+      "sourceUrl": "https://prod.danawa.com/info/?pcode=3924195"
+    },
+    {
+      "key": "a4-double-a-75",
+      "label": "더블에이 하이플러스 A4 복사용지",
+      "spec": "75g · 2,500매",
+      "median": 24715,
+      "n": 596,
+      "min": 14877,
+      "max": 85840,
+      "sourceUrl": "https://prod.danawa.com/info/?pcode=949343"
+    },
+    {
+      "key": "samdasoo-500-20",
+      "label": "제주 삼다수 무라벨",
+      "spec": "500ml × 20병",
+      "median": 11640,
+      "n": 296,
+      "min": 7200,
+      "max": 13740,
+      "sourceUrl": "https://prod.danawa.com/info/?pcode=14756420"
+    },
+    {
+      "key": "samdasoo-2l-6",
+      "label": "제주 삼다수 무라벨",
+      "spec": "2L × 6병",
+      "median": 9640,
+      "n": 303,
+      "min": 6110,
+      "max": 16880,
+      "sourceUrl": "https://prod.danawa.com/info/?pcode=15059738"
+    },
+    {
+      "key": "handtowel-namuya-5000",
+      "label": "잘풀리는집 나무야나무야 핸드타월",
+      "spec": "2겹 5,000매",
+      "median": 48405,
+      "n": 206,
+      "min": 29450,
+      "max": 82360,
+      "sourceUrl": "https://prod.danawa.com/info/?pcode=3633057"
+    },
+    {
+      "key": "humedic-sanitizer-500",
+      "label": "휴메딕 크린겔 손소독제",
+      "spec": "500ml 펌프형",
+      "median": 11823,
+      "n": 147,
+      "min": 7000,
+      "max": 23070,
+      "sourceUrl": "https://search.danawa.com/dsearch.php?query=%ED%9C%B4%EB%A9%94%EB%94%95+%ED%81%AC%EB%A6%B0%EA%B2%94+500ml"
+    },
+    {
+      "key": "maxim-zerosugar-100",
+      "label": "맥심 모카골드 제로슈거 커피믹스",
+      "spec": "11.5g × 100T",
+      "median": 29810,
+      "n": 593,
+      "min": 18270,
+      "max": 72400,
+      "sourceUrl": "https://prod.danawa.com/info/?pcode=118368982"
+    }
+  ]
+}

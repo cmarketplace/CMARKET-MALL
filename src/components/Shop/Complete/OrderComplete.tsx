@@ -6,9 +6,11 @@ import { Check } from 'lucide-react'
 
 import { useShop } from '@/app/providers/ShopProvider'
 import {
+  DEAL_TYPE_LABEL,
+  isPrepaid,
   ORDER_ROUTE_LABEL,
   ORDER_STATUS_HINT,
-  ORDER_STATUS_LABEL,
+  orderStatusLabel,
   PAYMENT_METHOD_LABEL,
   routeSummary,
   type StorefrontOrder,
@@ -62,9 +64,12 @@ export default function OrderComplete({ orderedAt, order }: OrderCompleteProps) 
     )
   }
 
-  const statusLabel = ORDER_STATUS_LABEL[order.status]
+  const isCanceled = order.status === 'CANCELED'
+  const statusLabel = orderStatusLabel(order.status)
   const statusHint = ORDER_STATUS_HINT[order.status]
-  const summary = routeSummary(order.route, order.supplierCount)
+  const summary = routeSummary(order.route, order.supplierCount, order.paymentMethod)
+  const prepaid = isPrepaid(order.paymentMethod)
+  const agency = order.dealType === 'CMARKET_AGENCY'
 
   return (
     <main className="bg-white">
@@ -77,7 +82,9 @@ export default function OrderComplete({ orderedAt, order }: OrderCompleteProps) 
               <Check size={22} strokeWidth={2.4} aria-hidden="true" />
             </span>
             <div>
-              <h1 className="text-text text-2xl font-semibold">주문이 접수되었습니다</h1>
+              <h1 className="text-text text-2xl font-semibold">
+                {isCanceled ? '취소된 주문입니다' : prepaid ? '결제와 주문 접수가 끝났습니다' : '주문이 접수되었습니다'}
+              </h1>
               <p className="text-muted mt-0.5 text-sm">{orderedAt}</p>
             </div>
           </div>
@@ -89,22 +96,33 @@ export default function OrderComplete({ orderedAt, order }: OrderCompleteProps) 
                 <p className="text-muted text-xs font-medium">주문번호</p>
                 <p className="text-text mt-0.5 font-mono text-lg font-semibold">{order.orderNo}</p>
               </div>
-              <span className="bg-highlight-soft text-highlight-strong rounded-full px-3 py-1 text-sm font-semibold">
+              <span
+                className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                  isCanceled ? 'text-muted bg-bg' : 'bg-highlight-soft text-highlight-strong'
+                }`}
+              >
                 {statusLabel}
               </span>
             </div>
-            {statusHint && <p className="text-muted mt-3 text-sm leading-6">{statusHint}</p>}
+            {statusHint && !isCanceled && <p className="text-muted mt-3 text-sm leading-6">{statusHint}</p>}
           </div>
 
           {/* 주문 경로 — 누구와 계약했고 계산서가 몇 장인지. 결제 화면과 같은 문구다 */}
           <div className="mt-6 rounded-2xl border border-border p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-text text-base font-semibold">{ORDER_ROUTE_LABEL[order.route]}</h2>
-              {order.paymentMethod && (
-                <span className="bg-blue-tint-2 text-primary rounded-full px-3 py-1 text-xs font-semibold">
-                  {PAYMENT_METHOD_LABEL[order.paymentMethod]}
-                </span>
-              )}
+              <span className="flex flex-wrap gap-1.5">
+                {agency && (
+                  <span className="bg-blue-tint text-primary rounded-full px-3 py-1 text-xs font-semibold">
+                    {DEAL_TYPE_LABEL.CMARKET_AGENCY}
+                  </span>
+                )}
+                {order.paymentMethod && (
+                  <span className="bg-blue-tint-2 text-primary rounded-full px-3 py-1 text-xs font-semibold">
+                    {PAYMENT_METHOD_LABEL[order.paymentMethod]}
+                  </span>
+                )}
+              </span>
             </div>
             <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
               {[
@@ -112,6 +130,7 @@ export default function OrderComplete({ orderedAt, order }: OrderCompleteProps) 
                 ['세금계산서', summary.invoice],
                 ['결제', summary.payment],
                 ['문제 생기면', summary.support],
+                ...(agency ? [['거래 형태', `${DEAL_TYPE_LABEL.CMARKET_AGENCY} — 씨마켓이 최저가 공급사에게서 사서 판매`]] : []),
                 ...(order.quoteNo ? [['견적서', order.quoteNo]] : []),
               ].map(([label, value]) => (
                 <div key={label} className="contents">
@@ -147,7 +166,7 @@ export default function OrderComplete({ orderedAt, order }: OrderCompleteProps) 
             </ol>
           </div>
 
-          {/* 금액 — 후불이라 «낸 돈» 이 아니라 «청구 예정» 이다. 그 구분이 흐려지면
+          {/* 금액 — 선불은 «결제된 금액», 후불은 «청구 예정». 그 구분이 흐려지면
             * 손님은 결제가 됐다고 읽거나, 반대로 이중청구를 걱정한다. */}
           <div className="bg-light-soft mt-6 space-y-2.5 rounded-2xl p-5 text-sm">
             <div className="flex items-center justify-between">
@@ -165,15 +184,23 @@ export default function OrderComplete({ orderedAt, order }: OrderCompleteProps) 
               <span className="text-text font-medium">{order.totalVat.toLocaleString()}원</span>
             </div>
             <div className="border-bg flex items-center justify-between border-t border-dashed pt-2.5">
-              <span className="text-text font-semibold">청구 예정 금액</span>
-              <strong className="text-primary text-lg font-semibold">
+              <span className="text-text font-semibold">
+                {isCanceled ? '취소된 금액' : prepaid ? '결제된 금액' : '청구 예정 금액'}
+              </span>
+              <strong className={`text-lg font-semibold ${isCanceled ? 'text-muted line-through' : 'text-primary'}`}>
                 {order.totalPayable.toLocaleString()}원
               </strong>
             </div>
             <p className="text-muted text-xs leading-5">
-              지금 결제된 금액은 없습니다. 납품 검수가 끝나면{' '}
-              {order.route === 'SAFE' ? '씨마켓이 청구서를 보내고' : `공급사 ${order.supplierCount}곳이 각각 청구하고`}
-              , 세금계산서는 결제 후 이메일로 발송됩니다.
+              {isCanceled
+                ? prepaid
+                  ? '결제된 금액은 취소 시점에 되돌아갑니다(카드 승인 취소 · 포인트 반환).'
+                  : '결제된 금액은 없습니다.'
+                : prepaid
+                  ? `${PAYMENT_METHOD_LABEL[order.paymentMethod!]} 결제가 완료되었습니다. 세금계산서는 씨마켓이 발행합니다.`
+                  : `지금 결제된 금액은 없습니다. 납품 검수가 끝나면 ${
+                      order.route === 'SAFE' ? '씨마켓이 청구서를 보내고' : `공급사 ${order.supplierCount}곳이 각각 청구하고`
+                    }, 세금계산서는 결제 후 이메일로 발송됩니다.`}
             </p>
           </div>
 

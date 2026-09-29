@@ -357,3 +357,20 @@ body {
 .landing-theme :is(h1, h2, h3, h4, p, a, button, span, dt, dd) {
   letter-spacing: -0.03em;
 }
+
+/* 조달 허브 섹션 — «공공기관 / 기업» 에 따라 순서가 바뀌므로 배경을 섹션이 정하지 않고 **자리**가 정한다.
+ * 섹션 안의 면은 세 변수만 쓴다: 카드(--hub-card) · 칩/탭(--hub-chip) · 카드 안의 한 겹 더(--hub-inset).
+ * 흰 자리에서는 옅은 회색 카드, 옅은 보라 자리에서는 흰 카드 — 같은 색이 겹쳐 사라지지 않는다. */
+.hub-sections > section:nth-of-type(odd) {
+  background: var(--color-white);
+  --hub-card: var(--color-light-soft);
+  --hub-chip: var(--color-blue-tint);
+  --hub-inset: var(--color-white);
+}
+
+.hub-sections > section:nth-of-type(even) {
+  background: var(--color-blue-tint);
+  --hub-card: var(--color-white);
+  --hub-chip: var(--color-white);
+  --hub-inset: var(--color-light-soft);
+}

@@ -100,7 +100,13 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
               </p>
             )}
 
-            <ProductPurchase product={product} isStub={isStubCatalog()} restricted={tier !== "FULL"} />
+            {/* 가림은 보기 등급(tier), 업체 선택은 고객 유형 — 실명이 보이는 직원도 업체는 고르지 않는다. */}
+            <ProductPurchase
+              product={product}
+              isStub={isStubCatalog()}
+              restricted={tier !== "FULL"}
+              canChooseSupplier={member?.customerType === "INSTITUTION"}
+            />
           </div>
         </section>
 

@@ -2,24 +2,46 @@ import { NextResponse } from 'next/server'
 
 import { toErrorResponse } from '@/lib/api-errors'
 import { createOrder, listOrders, OrderError } from '@/lib/orders'
-import { getShopMember } from '@/lib/shop-member'
-import type { OrderRoute, OrderShipTo, PaymentMethod } from '@/lib/order-types'
+import {
+  getShopMember,
+  PAYER_MISSING_MESSAGE,
+  payerMissing,
+  semoPayerMemberId,
+} from '@/lib/shop-member'
+import {
+  allowedPaymentMethods,
+  type CustomerType,
+  type OrderPaymentInput,
+  type OrderRoute,
+  type OrderShipTo,
+  type PaymentMethod,
+} from '@/lib/order-types'
 import type { StubOrderLine } from '@/lib/postpaid-mall-stub'
-import { isQuoteValid } from '@/lib/quote-types'
+import { isQuoteValid, QUOTE_UNUSABLE_CODE } from '@/lib/quote-types'
 import { getQuote } from '@/lib/quotes'
+
+/** 세모 주문 등록 대기(55초) + 앞뒤 처리 여유. Vercel 함수가 먼저 끊으면 몰이 결과를 전하지 못한다. */
+export const maxDuration = 60
 
 /**
  * 몰 주문 — 브라우저와 원장 사이의 유일한 통로.
  *
- *   1) **주문자** — 요청 본문이 아니라 **세션**에서. 열람은 공개몰이지만 주문은
- *      후불 계약의 당사자가 필요해서 익명일 수 없다(로그인 없으면 401).
+ *   1) **주문자** — 요청 본문이 아니라 **세션**에서. 주문은 계약·결제의 당사자가
+ *      필요해서 익명일 수 없다(로그인 없으면 401). 고객 유형은 세션의 **역할**이 정한다
+ *      (`customerTypeOf`): 발주기관(BUYER) / 공급기업(SUPPLIER · EMPLOYEE). 보기 등급(tier)이 아니다 —
+ *      그룹 코드가 있는 직원은 FULL 로 보지만 주문은 공급기업 규칙이다(2026-09-16 대표 결정).
+ *      직원은 소속 회원의 카드·포인트로 결제한다 — 세모에 `payerMemberId` 로 싣고, 소속이 비었으면 403.
  *   2) **배송지** — 이 몰은 모두 개방이라 고정 사업장 목록이 없다. 주문자가 적은
  *      주소를 받되 서버가 모양을 검증한다.
  *   3) **금액** — 스텁 단계에서는 화면 스냅샷 단가·배송비를 받아 서버가 합산하고,
- *      세모 연동 후에는 단가 자체를 받지 않는다(카탈로그가 재확정).
- *   4) **경로** — 씨마켓 안전결제(SAFE) / 공급사 직접 구매(DIRECT). 결제 수단은
- *      안전결제에만 있다(직접 구매는 공급사 계좌 후불).
- *   5) **견적서** — 견적번호가 오면 내 견적서인지·유효기간 안인지 확인한다.
+ *      세모 연동 후에는 단가 자체를 받지 않는다(카탈로그·견적서가 재확정).
+ *   4) **경로·결제수단** — 세모 규칙(`order-types.ts` `allowedPaymentMethods`)을 여기서
+ *      먼저 거른다. 공급기업은 안전결제 + 카드·포인트 선불만, 직접 구매는 후불만. 서버(세모)가
+ *      최종 판정이지만, 여기서 같은 문구로 400 을 내면 «화면은 막았는데 API 는 통과» 가 없다.
+ *   5) **카드 결제 입력** — 결제창에서 고른 씨마켓 저장카드 id(+잠금 카드면 비밀번호 6자리).
+ *      몰은 저장·로그하지 않고 세모로 넘긴다.
+ *   6) **견적서** — 견적번호가 오면 내 견적서인지·유효기간 안인지 확인한다. 세모가 그
+ *      견적서의 오퍼·단가로 잠근다(품목·수량이 다르면 세모가 400).
  */
 
 /** 한 번에 담을 수 있는 줄 수. 세모 주문 DTO 상한과 같은 값이다. */
@@ -32,6 +54,7 @@ interface OrderRequestBody {
   route?: unknown
   paymentMethod?: unknown
   quoteNo?: unknown
+  payment?: unknown
   shipping?: unknown
 }
 
@@ -104,9 +127,56 @@ function parseRoute(raw: unknown): OrderRoute {
   return raw === 'DIRECT' ? 'DIRECT' : 'SAFE'
 }
 
-function parsePaymentMethod(raw: unknown, route: OrderRoute): PaymentMethod | null {
-  if (route !== 'SAFE') return null
-  return raw === 'CARD' ? 'CARD' : 'TAX_INVOICE'
+function parsePaymentMethod(raw: unknown): PaymentMethod | null {
+  return raw === 'CARD' || raw === 'POINT' || raw === 'TAX_INVOICE' ? raw : null
+}
+
+/** 카드 입력 — id 는 양의 정수, 비밀번호는 숫자 6자리(세모 DTO 와 같은 검증). 모양이 아니면 문구를 돌려준다. */
+function parsePayment(raw: unknown): OrderPaymentInput | null | string {
+  if (raw === undefined || raw === null) return null
+  const value = raw as { cardId?: unknown; cardPassword?: unknown }
+  const cardId = Number(value.cardId)
+  if (!Number.isInteger(cardId) || cardId < 1) return '결제할 카드를 골라 주세요.'
+  const password = typeof value.cardPassword === 'string' ? value.cardPassword.trim() : ''
+  if (password && !/^\d{6}$/.test(password)) return '결제 확인 비밀번호는 숫자 6자리입니다.'
+  return { cardId, ...(password ? { cardPassword: password } : {}) }
+}
+
+/**
+ * 세모 `resolveOpenMallOrderTerms` 와 같은 표로 경로·결제수단을 확정한다.
+ * 규칙 밖의 조합은 세모가 내는 것과 같은 문구로 400 — 화면이 오래된 탭이어도 말이 같다.
+ */
+function resolveTerms(
+  customerType: CustomerType,
+  rawRoute: unknown,
+  rawMethod: unknown,
+): { route: OrderRoute; paymentMethod: PaymentMethod } | string {
+  const requestedRoute = parseRoute(rawRoute)
+  const requested = parsePaymentMethod(rawMethod)
+
+  if (customerType === 'COMPANY') {
+    if (requestedRoute !== 'SAFE') {
+      return '공급기업·씨마켓 직원 주문은 씨마켓 구매대행(안전결제)으로만 받습니다 — 직접구매는 발주기관만 고를 수 있습니다.'
+    }
+    if (requested !== 'CARD' && requested !== 'POINT') {
+      return '공급기업·씨마켓 직원 주문은 카드 또는 포인트 선불로만 결제할 수 있습니다(후불 불가).'
+    }
+    return { route: 'SAFE', paymentMethod: requested }
+  }
+
+  if (requestedRoute === 'DIRECT') {
+    if (requested && requested !== 'TAX_INVOICE') {
+      return '직접구매는 공급사별 세금계산서 후불입니다 — 카드·포인트 결제는 안전결제에서 고르세요.'
+    }
+    return { route: 'DIRECT', paymentMethod: 'TAX_INVOICE' }
+  }
+
+  // 발주기관이 결제수단을 안 보내면 후불 — 기관 구매의 기본값이자 화면의 기본 선택.
+  const paymentMethod = requested ?? 'TAX_INVOICE'
+  if (!allowedPaymentMethods(customerType, 'SAFE').includes(paymentMethod)) {
+    return '고를 수 없는 결제수단입니다.'
+  }
+  return { route: 'SAFE', paymentMethod }
 }
 
 export async function POST(request: Request) {
@@ -116,6 +186,10 @@ export async function POST(request: Request) {
       { message: '주문하려면 씨마켓 계정으로 로그인해 주세요.' },
       { status: 401 },
     )
+  }
+  // 직원은 소속 회원의 카드·포인트로만 결제한다(선불만) — 소속이 없으면 어떤 결제수단도 성립하지 않는다.
+  if (payerMissing(member)) {
+    return NextResponse.json({ message: PAYER_MISSING_MESSAGE }, { status: 403 })
   }
 
   let body: OrderRequestBody
@@ -138,12 +212,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: shipTo }, { status: 400 })
   }
 
-  // 제한 고객(공급사)은 안전결제만 — 직접 구매는 계약서에 상대 공급사가 실린다.
-  const route = member.tier === 'FULL' ? parseRoute(body.route) : 'SAFE'
-  const paymentMethod = parsePaymentMethod(body.paymentMethod, route)
-  if (member.tier !== 'FULL') {
-    for (const line of lines) line.supplierName = null
+  // 발주기관(BUYER) / 공급기업(SUPPLIER·EMPLOYEE) — 세션 역할이 고객 유형을 정한다(보기 등급과 별개).
+  const customerType: CustomerType = member.customerType
+  const terms = resolveTerms(customerType, body.route, body.paymentMethod)
+  if (typeof terms === 'string') {
+    return NextResponse.json({ message: terms }, { status: 400 })
   }
+  const { route, paymentMethod } = terms
+
+  // 공급기업(직원 포함) 주문은 공급사를 고르지 않는다(세모가 최저가로 확정) — 이름·오퍼 지정을 지운다.
+  if (customerType === 'COMPANY') {
+    for (const line of lines) {
+      line.supplierName = null
+      line.offerId = null
+    }
+  }
+
+  const payment = paymentMethod === 'CARD' ? parsePayment(body.payment) : null
+  if (typeof payment === 'string') {
+    return NextResponse.json({ message: payment }, { status: 400 })
+  }
+  if (paymentMethod === 'CARD' && !payment) {
+    return NextResponse.json({ message: '결제할 카드를 골라 주세요.' }, { status: 400 })
+  }
+
   const shipping = Math.max(0, Math.round(Number(body.shipping) || 0))
 
   // 견적번호 — 내 것이어야 하고, 유효기간 안이어야 한다. 아니면 주문을 세우지 않는다:
@@ -151,24 +243,34 @@ export async function POST(request: Request) {
   const quoteNo = typeof body.quoteNo === 'string' && body.quoteNo ? body.quoteNo.trim() : null
   if (quoteNo) {
     try {
-      const quote = getQuote(member.memberKey, quoteNo)
+      const quote = await getQuote(member.memberKey, quoteNo)
       if (!isQuoteValid(quote)) {
         return NextResponse.json(
-          { message: '견적서 유효기간이 지났습니다. 장바구니에서 견적서를 다시 발급해 주세요.' },
+          {
+            message: '견적서 유효기간이 지났습니다. 장바구니에서 견적서를 다시 발급해 주세요.',
+            code: QUOTE_UNUSABLE_CODE,
+          },
           { status: 409 },
         )
       }
     } catch (error) {
       if (error instanceof OrderError && error.status === 404) {
-        return NextResponse.json({ message: '견적서를 찾을 수 없습니다.' }, { status: 400 })
+        return NextResponse.json(
+          {
+            message: '견적서를 찾을 수 없습니다. 장바구니에서 견적서를 다시 발급해 주세요.',
+            code: QUOTE_UNUSABLE_CODE,
+          },
+          { status: 400 },
+        )
       }
-      throw error
+      return toErrorResponse(error, '견적서를 확인하지 못했습니다.')
     }
   }
 
   try {
     const order = await createOrder({
       memberId: member.memberKey,
+      payerMemberId: semoPayerMemberId(member),
       shipTo,
       lines,
       clientOrderKey:
@@ -176,13 +278,35 @@ export async function POST(request: Request) {
       route,
       paymentMethod,
       quoteNo,
+      payment,
       shipping,
     })
 
     return NextResponse.json({ order }, { status: 201 })
   } catch (error) {
+    // 결과를 모르는 실패(세모 응답 시간 초과·연결 끊김·5xx)는 «실패» 로 말하지 않는다 — 결제는 이미
+    // 끝났을 수 있다. 5xx 로 답하면 결제 화면이 같은 주문 키를 들고 있다가, 다시 누르면 세모가 같은
+    // 주문으로 이어 준다(결제됐으면 그 주문, 진행 중이면 503). 503 은 세모 문구(연동 미설정·결제 처리
+    // 중)가 담당자에게 필요해서 그대로 전한다.
+    if (isOutcomeUnknown(error)) {
+      console.error('[shop/api/orders] 주문 결과 불명', error)
+      return NextResponse.json({ message: ORDER_OUTCOME_UNKNOWN_MESSAGE }, { status: 504 })
+    }
     return toErrorResponse(error, '주문을 등록하지 못했습니다.')
   }
+}
+
+const ORDER_OUTCOME_UNKNOWN_MESSAGE =
+  '결제 결과를 아직 확인하지 못했습니다. 주문 내역에서 주문이 들어갔는지 먼저 확인해 주세요. ' +
+  '없으면 이 화면에서 다시 누르세요 — 같은 주문으로 이어져 두 번 결제되지 않습니다.'
+
+function isOutcomeUnknown(error: unknown): boolean {
+  if (error instanceof OrderError) return error.status >= 500 && error.status !== 503
+  if (error instanceof Error) {
+    // AbortSignal.timeout → TimeoutError, 연결 실패 → TypeError(fetch failed)
+    return error.name === 'TimeoutError' || error.name === 'AbortError' || error.name === 'TypeError'
+  }
+  return false
 }
 
 /** 내 주문 내역. 남의 주문은 볼 수 없다 — 계정을 세션에서만 받기 때문이다. */

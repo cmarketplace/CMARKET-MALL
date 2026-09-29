@@ -41,8 +41,13 @@ export interface CartCombination {
  *
  * 순수 계산은 `cart-combination.ts` 에 있고, 여기는 저장소 셋(장바구니 줄·계획·선택)을
  * 묶어 한 번에 계산해 줄 뿐이다.
+ *
+ * `lowestOnly` — 공급기업(공급사·직원) 손님. 업체를 고르지 않는다(세모가 무조건 최저가로 확정한다):
+ * 저장된 조합 방식·줄마다 고른 업체를 **무시하고** 최저가 조합 하나로 계산한다. 보기 등급이 FULL 인
+ * 직원은 공급사 실명이 보이고 예전에 고른 업체가 장바구니에 남아 있을 수 있는데, 그 값으로 계산하면
+ * 화면 금액과 세모가 결제할 금액이 달라진다. 저장값은 지우지 않는다(계산에만 안 쓴다).
  */
-export function useCartCombination(): CartCombination {
+export function useCartCombination({ lowestOnly = false }: { lowestOnly?: boolean } = {}): CartCombination {
   const { cartItems } = useShop()
   const plan = useSyncExternalStore(subscribeCartPlan, getCartPlanSnapshot, getCartPlanServerSnapshot)
 
@@ -56,12 +61,15 @@ export function useCartCombination(): CartCombination {
       selected.map(line => ({
         product: line.product,
         quantity: line.quantity,
-        offerId: line.offerId ?? null,
+        offerId: lowestOnly ? null : (line.offerId ?? null),
       })),
-    [selected],
+    [selected, lowestOnly],
   )
 
-  const canSingle = useMemo(() => singleSupplierCandidates(inputs).length > 0, [inputs])
+  const canSingle = useMemo(
+    () => !lowestOnly && singleSupplierCandidates(inputs).length > 0,
+    [inputs, lowestOnly],
+  )
 
   const byMode = useMemo<Record<CombinationMode, CombinationResult | null>>(
     () => ({
@@ -73,7 +81,9 @@ export function useCartCombination(): CartCombination {
   )
 
   // «업체 최소화» 가 성립하지 않는 장바구니에서 그 모드가 저장돼 있으면 최저가 조합으로 본다.
-  const effectiveMode: CombinationMode = plan.mode === 'single' && !canSingle ? 'best' : plan.mode
+  // 공급기업은 모드 자체가 없다 — 언제나 최저가 조합.
+  const effectiveMode: CombinationMode =
+    lowestOnly || (plan.mode === 'single' && !canSingle) ? 'best' : plan.mode
   const result = byMode[effectiveMode] ?? byMode.best!
 
   return {
