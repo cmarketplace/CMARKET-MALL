@@ -172,7 +172,7 @@ export default function ProductPurchase({
             </p>
             {restricted && (
               <p className="text-muted mt-1 text-xs leading-5">
-                씨마켓몰이 확정한 판매가입니다. 주문은 씨마켓 안전결제로 진행되고 계약·계산서 상대는 씨마켓입니다.
+                세모네모가 확정한 판매가입니다. 주문은 씨마켓 안전결제로 진행되고 계약·계산서 상대는 씨마켓입니다.
               </p>
             )}
             {chosen && !restricted && (
@@ -263,7 +263,7 @@ export default function ProductPurchase({
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-primary">
             <DetailStatusIcon variant="supplier" className="h-5 w-5" />
           </span>
-          <span className="text-sm font-semibold text-text">씨마켓몰 승인 공급사</span>
+          <span className="text-sm font-semibold text-text">세모네모 승인 공급사</span>
         </div>
         <div className="flex items-center gap-3 rounded-xl bg-[#F0F9F6] px-4 py-3">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#D7F2E9] text-[#12AD80]">

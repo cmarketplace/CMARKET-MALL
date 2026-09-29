@@ -63,7 +63,7 @@ export async function GET() {
     return new NextResponse(`﻿${lines.join('\r\n')}\r\n`, {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="cmarket-mall-orders-${stamp}.csv"; filename*=UTF-8''${encodeURIComponent(`씨마켓몰_주문내역_${stamp}.csv`)}`,
+        'Content-Disposition': `attachment; filename="cmarket-mall-orders-${stamp}.csv"; filename*=UTF-8''${encodeURIComponent(`세모네모_주문내역_${stamp}.csv`)}`,
         'Cache-Control': 'no-store',
       },
     })

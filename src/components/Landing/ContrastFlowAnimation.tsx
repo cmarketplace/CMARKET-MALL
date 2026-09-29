@@ -16,7 +16,7 @@ export default function ContrastFlowAnimation({ asIsRows }: { asIsRows: string[]
       <article className="rounded-3xl bg-[#eee8fb] p-6 sm:p-9">
         <p className="text-sm font-semibold text-primary">씨마켓 구매</p>
         <div className="relative my-8 aspect-[3/2] overflow-hidden rounded-2xl">
-          <Image src="/images/landing/mall-purchasing.png" alt="노트북에서 씨마켓몰로 물품을 주문하는 모습을 표현한 이미지" fill sizes="(min-width: 1600px) 704px, (min-width: 768px) 44vw, 90vw" className="object-cover" />
+          <Image src="/images/landing/mall-purchasing.png" alt="노트북에서 세모네모로 물품을 주문하는 모습을 표현한 이미지" fill sizes="(min-width: 1600px) 704px, (min-width: 768px) 44vw, 90vw" className="object-cover" />
         </div>
         <h3 className="text-2xl font-semibold text-primary">비교부터 주문까지 한곳에서</h3>
         <p className="mt-4 text-sm leading-[1.7] text-muted-strong">

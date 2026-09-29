@@ -56,7 +56,7 @@ export const GROUP_BUY_CAMPAIGNS: readonly GroupBuyCampaign[] = [
   {
     key: 'gb-2026-10',
     title: '10월 공동구매',
-    basis: '씨마켓몰 MD 선정 · 겨울 전 한꺼번에 사 두는 소모품',
+    basis: '세모네모 MD 선정 · 겨울 전 한꺼번에 사 두는 소모품',
     surveyClosesAt: '2026-09-30',
     biddingPeriod: '10월 1일(목) ~ 10월 5일(월)',
     confirmPeriod: '10월 6일(화) ~ 10월 7일(수)',

@@ -39,7 +39,7 @@ export default function OfficeServicesSection({ month }: { month: number }) {
               <span className="keyword-gradient-glow">계약 한 번</span>으로
             </>
           }
-          description="필요한 서비스를 골라 인원·면적·대수만 적으면 견적서가 옵니다. 확정하면 정기구독으로 이어지고, 이후 관리는 씨마켓몰이 챙깁니다."
+          description="필요한 서비스를 골라 인원·면적·대수만 적으면 견적서가 옵니다. 확정하면 정기구독으로 이어지고, 이후 관리는 세모네모가 챙깁니다."
         />
 
         <RevealCard className="mt-12">

@@ -102,7 +102,7 @@ export default async function ShopHomePage() {
 
         {member?.tier === 'RESTRICTED' && (
           <p className="bg-blue-tint-2 text-primary rounded-xl px-4 py-2.5 text-xs font-semibold">
-            공급사 계정으로 보고 계십니다 — 씨마켓몰 판매가로 구매할 수 있고, 주문은 씨마켓 안전결제로 진행됩니다.
+            공급사 계정으로 보고 계십니다 — 세모네모 판매가로 구매할 수 있고, 주문은 씨마켓 안전결제로 진행됩니다.
           </p>
         )}
 

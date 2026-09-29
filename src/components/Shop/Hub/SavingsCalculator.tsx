@@ -155,7 +155,7 @@ export default function SavingsCalculator() {
               <p className="mt-1 text-2xl font-semibold tabular-nums">{won(summary.before)}원</p>
             </div>
             <div>
-              <p className="text-on-dark-muted text-xs">씨마켓몰 판매가로</p>
+              <p className="text-on-dark-muted text-xs">세모네모 판매가로</p>
               <p className="mt-1 text-2xl font-semibold tabular-nums">{won(summary.after)}원</p>
             </div>
             <div>

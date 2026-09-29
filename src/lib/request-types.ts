@@ -47,7 +47,7 @@ export const MALL_REQUEST_STATUS_LABEL: Record<MallRequestStatus, string> = {
 }
 
 export const MALL_REQUEST_STATUS_HINT: Record<MallRequestStatus, string> = {
-  RECEIVED: '씨마켓몰 담당자가 확인하기 전입니다. 영업일 기준 하루 안에 연락드립니다.',
+  RECEIVED: '세모네모 담당자가 확인하기 전입니다. 영업일 기준 하루 안에 연락드립니다.',
   IN_REVIEW: '업체·규격을 맞추는 중입니다. 필요한 것이 있으면 담당자가 연락드립니다.',
   QUOTED: '견적서가 도착했습니다. 견적 번호로 확인하고 확정해 주세요.',
   CONFIRMED: '확정된 요청입니다. 주문·구독·계약으로 이어집니다.',

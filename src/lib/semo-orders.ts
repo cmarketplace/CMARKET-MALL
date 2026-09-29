@@ -80,7 +80,7 @@ async function semoFetch<T>(
   return payload.data
 }
 
-/** 세모 `StorefrontOrderDto`. 종전 몰(KCL) 주문은 씨마켓몰 칸이 null 이다. */
+/** 세모 `StorefrontOrderDto`. 종전 몰(KCL) 주문은 세모네모 칸이 null 이다. */
 interface SemoOrderPayload {
   orderNo: string
   status: string
@@ -294,7 +294,7 @@ export async function semoCancelOrder(memberId: string, orderNo: string): Promis
 
   const order = await semoFetch<SemoOrderPayload>(
     `/orders/${encodeURIComponent(orderNo)}/cancel`,
-    { method: 'POST', body: JSON.stringify({ reason: '손님 취소(씨마켓몰)' }) },
+    { method: 'POST', body: JSON.stringify({ reason: '손님 취소(세모네모)' }) },
   )
   const [mall] = await withSuppliers([toMallOrder(order)])
   return mall

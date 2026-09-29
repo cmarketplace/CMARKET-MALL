@@ -45,8 +45,8 @@ export default async function LoginPage({
     <LoginShell>
       <p className="text-text mt-3 text-base font-semibold">씨마켓 회원 로그인이 필요합니다</p>
       <p className="text-muted mt-2 text-sm leading-6">
-        씨마켓몰은 씨마켓 회원만 이용할 수 있습니다. 발주기관은 공급사별 단가와 낙찰가 기준을
-        비교해 주문하고, 공급사 회원은 씨마켓몰 판매가로 안전결제 구매를 할 수 있습니다.
+        세모네모는 씨마켓 회원만 이용할 수 있습니다. 발주기관은 공급사별 단가와 낙찰가 기준을
+        비교해 주문하고, 공급사 회원은 세모네모 판매가로 안전결제 구매를 할 수 있습니다.
       </p>
 
       {error === 'not_allowed' ? (

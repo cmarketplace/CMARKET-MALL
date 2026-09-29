@@ -218,7 +218,7 @@ export default function LinkForm({
 
           {state.matches.length > 0 && (
             <div className="border-border mt-4 border-t pt-3">
-              <p className="text-text text-sm font-semibold">씨마켓몰에 비슷한 상품이 이미 있어요</p>
+              <p className="text-text text-sm font-semibold">세모네모에 비슷한 상품이 이미 있어요</p>
               <ul className="mt-2 space-y-1.5">
                 {state.matches.map(product => (
                   <li key={product.id} className="flex items-center justify-between gap-3 text-sm">

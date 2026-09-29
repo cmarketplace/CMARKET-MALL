@@ -33,7 +33,7 @@ export default function SwitchSection() {
                 <span className="keyword-gradient-glow">같은 조건</span>으로 비교해 보세요
               </>
             }
-            description="정수기·복합기·청소처럼 매달 나가는 계약의 조건을 적으면 씨마켓몰이 같은 조건으로 견적을 받아 나란히 보여 드립니다. 약정 만기와 위약금까지 따져 갈아탈 시점을 잡습니다."
+            description="정수기·복합기·청소처럼 매달 나가는 계약의 조건을 적으면 세모네모가 같은 조건으로 견적을 받아 나란히 보여 드립니다. 약정 만기와 위약금까지 따져 갈아탈 시점을 잡습니다."
           />
 
           <RevealCard>

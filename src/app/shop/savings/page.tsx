@@ -16,7 +16,7 @@ export default function ShopSavingsPage() {
       <div className="container-shop space-y-8 pt-8 pb-24">
         <HubHeader
           eyebrow="절감액 계산"
-          title="작년에 산 그대로, 씨마켓몰이면 얼마였을까"
+          title="작년에 산 그대로, 세모네모면 얼마였을까"
           description="구매 내역 엑셀에서 품명·규격·수량·단가 칸을 복사해 붙여 넣으세요. 줄마다 몰에서 같은 상품을 찾아 지금 판매가로 계산합니다. 붙여 넣은 내용은 저장하지 않습니다."
         />
         {isStubCatalog() && (

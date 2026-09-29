@@ -76,7 +76,7 @@ function RequestCard({ request }: { request: MallRequest }) {
       )}
       {request.replyNote && (
         <p className="bg-light-soft text-text mt-3 rounded-lg px-3 py-2 text-sm leading-6 whitespace-pre-line">
-          <span className="text-muted block text-xs font-semibold">씨마켓몰 담당자</span>
+          <span className="text-muted block text-xs font-semibold">세모네모 담당자</span>
           {request.replyNote}
         </p>
       )}

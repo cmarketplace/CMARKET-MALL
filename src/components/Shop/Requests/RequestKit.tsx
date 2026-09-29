@@ -200,7 +200,7 @@ export function RequestReceived({
         ))}
       </ul>
       <p className="text-muted mt-3 text-sm leading-6">
-        씨마켓몰 담당자가 영업일 기준 하루 안에 연락드리고, 견적서가 준비되면 내 요청에서 바로 볼 수 있습니다.
+        세모네모 담당자가 영업일 기준 하루 안에 연락드리고, 견적서가 준비되면 내 요청에서 바로 볼 수 있습니다.
       </p>
       {stub && (
         <p className="text-highlight-strong mt-2 text-xs font-semibold">

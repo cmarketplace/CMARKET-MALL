@@ -24,7 +24,7 @@ export default function SavingsSection() {
             <>
               작년에 산 그대로,
               <br />
-              <span className="keyword-gradient-glow">씨마켓몰</span>이면 얼마였을까
+              <span className="keyword-gradient-glow">세모네모</span>이면 얼마였을까
             </>
           }
           description="구매 내역 엑셀을 붙여 넣으면 줄마다 몰에서 같은 상품을 찾아 차액을 계산합니다. 붙여 넣은 내용은 저장하지 않습니다."

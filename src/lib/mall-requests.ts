@@ -246,7 +246,7 @@ function stubCancel(memberKey: string, id: string): MallRequest {
   // 이미 취소된 요청의 재시도는 그대로 돌려준다(세모와 같은 규칙 — 재시도에 «진행 중» 문구가 뜨지 않게).
   if (row.status === 'CANCELED') return publicView(row)
   if (!CANCELABLE_REQUEST_STATUSES.includes(row.status)) {
-    throw new PostpaidMallError(409, '이미 진행 중인 요청이라 취소할 수 없습니다. 씨마켓몰 담당자에게 연락해 주세요.')
+    throw new PostpaidMallError(409, '이미 진행 중인 요청이라 취소할 수 없습니다. 세모네모 담당자에게 연락해 주세요.')
   }
 
   const updated = { ...row, status: 'CANCELED' as const, updatedAt: new Date().toISOString() }

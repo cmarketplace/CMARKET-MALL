@@ -82,8 +82,8 @@ export default function OrgFavoritesSection() {
           </div>
           <SourceNote>
             {ORG_FAVORITES.basis === 'measured' && ORG_FAVORITES.measuredAt
-              ? `${ORG_FAVORITES.measuredAt.replace(/-/g, '.')} 기준 · 씨마켓몰 주문 집계`
-              : '씨마켓몰 MD 정리 · 순서는 인기 순위가 아닙니다'}
+              ? `${ORG_FAVORITES.measuredAt.replace(/-/g, '.')} 기준 · 세모네모 주문 집계`
+              : '세모네모 MD 정리 · 순서는 인기 순위가 아닙니다'}
           </SourceNote>
         </RevealCard>
       </div>
