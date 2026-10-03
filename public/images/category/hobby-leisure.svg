@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480" width="480" height="480" role="img" aria-label="취미/레저/계절 대표 이미지(실제 상품 사진 아님)">
+<rect width="480" height="480" fill="#EEFBF3"/>
+<circle cx="240" cy="214" r="138" fill="#D6F5E0"/>
+<g transform="translate(240 214)" fill="none" stroke="#3EA35F" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"><path d="M-90 72-24-38 42 72Z"/><path d="M-24-38V72M-24 72-46 30M-24 72-2 30"/><path d="M-36-56-24-38-12-56"/><path d="M-96 72H96"/><circle cx="56" cy="-44" r="18"/><path d="M84.0 -44.0L96.0 -44.0M75.8 -24.2L84.3 -15.7M56.0 -16.0L56.0 -4.0M36.2 -24.2L27.7 -15.7M28.0 -44.0L16.0 -44.0M36.2 -63.8L27.7 -72.3M56.0 -72.0L56.0 -84.0M75.8 -63.8L84.3 -72.3"/></g>
+<text x="240" y="420" text-anchor="middle" font-family="Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif" font-size="22" letter-spacing="1" fill="#8A93A3">대표 이미지</text>
+</svg>
