@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480" width="480" height="480" role="img" aria-label="산업/MRO자재 대표 이미지(실제 상품 사진 아님)">
+<rect width="480" height="480" fill="#FBF5EE"/>
+<circle cx="240" cy="214" r="138" fill="#F5E6D6"/>
+<g transform="translate(240 214)" fill="none" stroke="#A3703E" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"><g transform="translate(-34 -34)"><path d="M33.2 -7.3L46.7 -5.5L46.7 5.5L33.2 7.3L28.6 18.3L36.9 29.1L29.1 36.9L18.3 28.6L7.3 33.2L5.5 46.7L-5.5 46.7L-7.3 33.2L-18.3 28.6L-29.1 36.9L-36.9 29.1L-28.6 18.3L-33.2 7.3L-46.7 5.5L-46.7 -5.5L-33.2 -7.3L-28.6 -18.3L-36.9 -29.1L-29.1 -36.9L-18.3 -28.6L-7.3 -33.2L-5.5 -46.7L5.5 -46.7L7.3 -33.2L18.3 -28.6L29.1 -36.9L36.9 -29.1L28.6 -18.3Z"/><circle r="14"/></g><g transform="translate(34 30) rotate(45)"><path d="M-10 62A10 10 0 0 0 10 62V-12C22-18 28-30 26-42 24-52 18-58 12-62V-42H-12V-62C-18-58-24-52-26-42-28-30-22-18-10-12Z"/></g></g>
+<text x="240" y="420" text-anchor="middle" font-family="Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif" font-size="22" letter-spacing="1" fill="#8A93A3">대표 이미지</text>
+</svg>

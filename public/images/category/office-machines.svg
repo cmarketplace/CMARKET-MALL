@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480" width="480" height="480" role="img" aria-label="사무기기 대표 이미지(실제 상품 사진 아님)">
+<rect width="480" height="480" fill="#EEF5FB"/>
+<circle cx="240" cy="214" r="138" fill="#D6E6F5"/>
+<g transform="translate(240 214)" fill="none" stroke="#3E70A3" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"><path d="M-50-30V-80H50V-30"/><rect x="-86" y="-30" width="172" height="76" rx="10"/><path d="M-50 22H50V84H-50Z"/><path d="M-30 46H30M-30 64H14"/><circle cx="58" cy="-8" r="5"/></g>
+<text x="240" y="420" text-anchor="middle" font-family="Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif" font-size="22" letter-spacing="1" fill="#8A93A3">대표 이미지</text>
+</svg>

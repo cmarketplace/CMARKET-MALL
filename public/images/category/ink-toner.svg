@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480" width="480" height="480" role="img" aria-label="잉크/토너/드럼 대표 이미지(실제 상품 사진 아님)">
+<rect width="480" height="480" fill="#EEEEFB"/>
+<circle cx="240" cy="214" r="138" fill="#D6D6F5"/>
+<g transform="translate(240 214)" fill="none" stroke="#3E3EA3" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"><rect x="-78" y="-20" width="156" height="78" rx="10"/><path d="M-78 10H78M-56 58V74H56V58"/><rect x="34" y="20" width="26" height="26" rx="4"/><path d="M-26-40C-26-58-10-70 0-86 10-70 26-58 26-40A26 26 0 0 1-26-40Z"/></g>
+<text x="240" y="420" text-anchor="middle" font-family="Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif" font-size="22" letter-spacing="1" fill="#8A93A3">대표 이미지</text>
+</svg>

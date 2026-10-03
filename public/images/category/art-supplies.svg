@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480" width="480" height="480" role="img" aria-label="미술/화방용품 대표 이미지(실제 상품 사진 아님)">
+<rect width="480" height="480" fill="#FBEEFB"/>
+<circle cx="240" cy="214" r="138" fill="#F5D6F5"/>
+<g transform="translate(240 214)" fill="none" stroke="#A33EA3" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"><path d="M-6-76C-60-76-90-36-86 8-82 52-40 76 4 72 26 70 22 50 10 40 0 30 6 14 24 14 54 14 76 0 76-24 76-54 40-76-6-76Z"/><circle cx="-46" cy="-22" r="10"/><circle cx="-16" cy="-48" r="10"/><circle cx="26" cy="-44" r="10"/><circle cx="-44" cy="20" r="10"/><path d="M92-80 46 0"/><path d="M46 0C34 2 30 14 30 24 40 22 50 18 52 8Z"/></g>
+<text x="240" y="420" text-anchor="middle" font-family="Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif" font-size="22" letter-spacing="1" fill="#8A93A3">대표 이미지</text>
+</svg>

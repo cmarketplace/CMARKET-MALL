@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480" width="480" height="480" role="img" aria-label="모바일쿠폰 대표 이미지(실제 상품 사진 아님)">
+<rect width="480" height="480" fill="#F7EEFB"/>
+<circle cx="240" cy="214" r="138" fill="#EBD6F5"/>
+<g transform="translate(240 214)" fill="none" stroke="#813EA3" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"><path d="M-86-48H86V-14A16 16 0 0 0 86 18V52H-86V18A16 16 0 0 0-86-14Z"/><path d="M30-40V-28M30-12V0M30 16V28M30 44V52" /><path d="M-48 22-8-18"/><circle cx="-44" cy="-14" r="7"/><circle cx="-12" cy="18" r="7"/></g>
+<text x="240" y="420" text-anchor="middle" font-family="Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif" font-size="22" letter-spacing="1" fill="#8A93A3">대표 이미지</text>
+</svg>
