@@ -43,7 +43,6 @@ const ROOTS = {
   "패션/뷰티": "fashion-beauty",
   필기구: "writing-instruments",
   "화일/바인더": "file-binder",
-  선장품: "seonjang",
 };
 
 // 품명은 어떤 키워드 규칙에도 안 걸리는 값으로 — 대분류 그림까지 내려가야 한다.
@@ -77,15 +76,30 @@ test("대분류 이름 정규화 — 공백·/·가운뎃점·& 무시, 영문 �
   assert.equal(normalizeCategory("생활·주방"), normalizeCategory("생활/주방"));
 });
 
-test("기존 키워드 규칙이 대분류 그림보다 먼저다", () => {
-  assert.equal(pickImage("선장품", "생활/주방", NEUTRAL), PRODUCT_IMAGES.seonjang);
+test("선장품은 대분류·세분류 어디로 와도 선물상자 하나", () => {
+  const gift = "/images/seonjang-gift.svg";
+  assert.equal(pickImage(null, "선장품", NEUTRAL), gift);
+  assert.equal(pickImage("선장품", "생활/주방", "치약 120g"), gift);
+  assert.ok(statSync(`${PUBLIC}${gift}`).isFile());
+});
+
+test("대분류를 알면 그 그림이 품명 키워드보다 먼저 — 실험/연구실만 예외", () => {
+  // 다른 분류의 스톡 사진이 붙지 않는다
+  assert.equal(pickImage(null, "생활/주방", "스텐 컵 350ml"), "/images/category/living-kitchen.svg");
+  assert.equal(pickImage(null, "생활/주방", "밀폐 용기 1L"), "/images/category/living-kitchen.svg");
+  assert.equal(pickImage(null, "잉크/토너/드럼", "HP 토너 CF280X"), "/images/category/ink-toner.svg");
+  assert.equal(pickImage(null, "복사용지&지류용품", "A4 용지 80g"), "/images/category/paper.svg");
+  // 실험/연구실은 시약병·비커·페트리 사진이 더 정확하다
   assert.equal(pickImage("시약", "실험/연구실", NEUTRAL), PRODUCT_IMAGES.reagent);
   assert.equal(pickImage(null, "실험/연구실", "비커 500ml"), PRODUCT_IMAGES.glass);
-  assert.equal(pickImage(null, "생활/주방", "주방 세제 1L"), PRODUCT_IMAGES.color);
-  assert.equal(pickImage(null, "산업/MRO자재", "니트릴 장갑 M"), PRODUCT_IMAGES.ppe);
   assert.equal(pickImage(null, "실험/연구실", "페트리 디시"), PRODUCT_IMAGES.petri);
-  assert.equal(pickImage(null, "생활/주방", "스텐 냄비 24cm"), PRODUCT_IMAGES.ware);
-  assert.equal(pickImage(null, "사무기기", "계측 장비"), PRODUCT_IMAGES.special);
+  assert.equal(pickImage(null, "실험/연구실", NEUTRAL), "/images/category/lab-research.svg");
+});
+
+test("대분류를 모를 때는 품명 키워드 사진이 쓰인다", () => {
+  assert.equal(pickImage(null, null, "주방 세제 1L"), PRODUCT_IMAGES.color);
+  assert.equal(pickImage(null, "", "니트릴 장갑 M"), PRODUCT_IMAGES.ppe);
+  assert.equal(pickImage(null, undefined, "스텐 냄비 24cm"), PRODUCT_IMAGES.ware);
 });
 
 test("모르는 대분류·대분류 없음 → «사진 준비 중»", () => {

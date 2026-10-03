@@ -1,7 +1,7 @@
 import { PRODUCT_IMAGES } from "@/components/Shop/image.data";
 
 /**
- * 상품 카드에 들어갈 이미지 한 장을 고른다 — 실제 사진 → 분류 대표 사진 → 대분류 그림 → «사진 준비 중».
+ * 상품 카드에 들어갈 이미지 한 장을 고른다 — 실제 사진 → 선장품 선물상자 → 대분류 그림(실험/연구실 제외) → 품명 키워드 사진 → «사진 준비 중».
  *
  * `semo-feed.ts` 에서 떼어 낸 것은 화면·네트워크 없이 단위 테스트로 순서를 고정하려고다
  * (`product-image.test.mjs`).
@@ -67,7 +67,8 @@ const CATEGORY_IMAGE_BY_ROOT: Record<string, string> = {
   패션뷰티: "/images/category/fashion-beauty.svg",
   필기구: "/images/category/writing-instruments.svg",
   화일바인더: "/images/category/file-binder.svg",
-  선장품: "/images/category/seonjang.svg",
+  // 선장품은 09-07 에 정한 선물상자 그림 하나로(10-03 대표 «하나로 맞춰»)
+  선장품: "/images/seonjang-gift.svg",
 };
 
 /** 대분류 이름 비교용 — 공백·`/`·`·`·`&` 를 걷고 영문은 소문자로. «생활·주방» = «생활/주방». */
@@ -96,8 +97,16 @@ export function pickImage(
 ): string {
   const hay = `${categoryName ?? ""} ${name ?? ""}`.toLowerCase();
 
-  // 선장품은 카테고리로만 가른다 — 품명(치약·세제·휴지…)으로 걸면 아래 규칙에 흩어진다.
-  if (/선장품/.test(categoryName ?? "")) return PRODUCT_IMAGES.seonjang;
+  // 선장품은 대분류·세분류 어디로 와도 선물상자 하나 — 품명(치약·세제·휴지…)으로 흩어지지 않게.
+  if (/선장품/.test(categoryName ?? "") || normalizeCategory(rootCategoryName) === "선장품") {
+    return "/images/seonjang-gift.svg";
+  }
+
+  // 대분류를 알면 그 그림이 먼저다(10-03 대표) — «컵»·«용기»·«토너» 같은 품명 키워드로
+  // 다른 분류의 스톡 사진이 붙지 않게. 실험/연구실만은 시약병·비커 사진이 더 정확해 키워드를 먼저 본다.
+  const byRoot = categoryImage(rootCategoryName);
+  if (byRoot && normalizeCategory(rootCategoryName) !== "실험연구실") return byRoot;
+
   if (/시약|reagent|용액|solution|acid|alcohol|산\b|수산화/.test(hay)) return PRODUCT_IMAGES.reagent;
   if (/초자|유리|glass|비커|플라스크|flask|beaker|메스/.test(hay)) return PRODUCT_IMAGES.glass;
   if (/세제|세정|린스|표백|살균|소독/.test(hay)) return PRODUCT_IMAGES.color;
@@ -106,7 +115,7 @@ export function pickImage(
   if (/냄비|솥|팬|주방|용기|보관|밀폐|텀블러|컵/.test(hay)) return PRODUCT_IMAGES.ware;
   if (/장비|기기|instrument|장치|계측/.test(hay)) return PRODUCT_IMAGES.special;
 
-  return categoryImage(rootCategoryName) ?? PRODUCT_IMAGES.placeholder;
+  return byRoot ?? PRODUCT_IMAGES.placeholder;
 }
 
 /** 피드 한 줄의 이미지 — 피드가 준 실제 사진이 언제나 먼저다. */

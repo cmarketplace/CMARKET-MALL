@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480" width="480" height="480" role="img" aria-label="선장품 대표 이미지(실제 상품 사진 아님)">
-<rect width="480" height="480" fill="#EEF6FB"/>
-<circle cx="240" cy="214" r="138" fill="#D6E8F5"/>
-<g transform="translate(240 214)" fill="none" stroke="#3E79A3" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"><circle cx="0" cy="-66" r="14"/><path d="M0-52V74M-36-30H36M-74 22C-70 54-38 74 0 74 38 74 70 54 74 22"/><path d="M-86 32-74 18-60 32M60 32 74 18 86 32"/></g>
-<text x="240" y="420" text-anchor="middle" font-family="Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif" font-size="22" letter-spacing="1" fill="#8A93A3">대표 이미지</text>
-</svg>
