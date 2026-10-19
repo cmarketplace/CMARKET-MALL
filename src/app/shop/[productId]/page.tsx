@@ -1,11 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 
 import ShopNav from "@/components/Shop/ShopNav";
 import DetailStatusIcon from "@/components/Shop/ProductDetail/DetailStatusIcon";
 import ProductPurchase from "@/components/Shop/ProductDetail/ProductPurchase";
 import ProductDetailTabs from "@/components/Shop/ProductDetail/ProductDetailTabs";
+import ProductReactionBar from "@/components/Shop/ProductDetail/ProductReactionBar";
+import ProductReviews from "@/components/Shop/ProductDetail/ProductReviews";
+import { reactionsEnabled } from "@/config/reactions";
 import {
   fetchProductWithOffers,
   fetchRelatedProducts,
@@ -14,6 +18,8 @@ import {
   maskProducts,
   SemoFeedError,
 } from "@/lib/catalog";
+import { attachSocialProof } from "@/lib/reactions-server";
+import { semoRecordView } from "@/lib/semo-reactions";
 import { getShopMember } from "@/lib/shop-member";
 
 interface ProductDetailPageProps {
@@ -44,7 +50,13 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   if (!loaded) notFound();
 
   const tier = member?.tier ?? null;
-  const product = maskForViewer(loaded, tier);
+  // 반응 스위치(SHOP_REACTIONS)가 꺼져 있으면 아래 셋은 아무것도 하지 않는다 — 화면이 지금과 같다.
+  const reactions = reactionsEnabled();
+  const [product] = await attachSocialProof([maskForViewer(loaded, tier)], member ?? null);
+  if (reactions && member) {
+    // 열람 기록(판매자 카드 «기관 N곳이 다시 봤어요» 의 원천) — 응답을 보낸 뒤에 남긴다.
+    after(() => semoRecordView(member.memberKey, loaded.id));
+  }
   // 추천은 곁들이는 칸이다 — 못 받아도 상세는 떠야 한다.
   const related = await fetchRelatedProducts(product.categoryId).catch((error: unknown) => {
     if (!(error instanceof SemoFeedError)) throw error;
@@ -100,6 +112,14 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
               </p>
             )}
 
+            {reactions && (
+              <ProductReactionBar
+                productId={product.id}
+                productName={product.name}
+                socialProof={product.socialProof ?? null}
+              />
+            )}
+
             {/* 가림은 보기 등급(tier), 업체 선택은 고객 유형 — 실명이 보이는 직원도 업체는 고르지 않는다. */}
             <ProductPurchase
               product={product}
@@ -110,7 +130,12 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           </div>
         </section>
 
-        <ProductDetailTabs product={product} products={products} detailSpecs={detailSpecs} />
+        <ProductDetailTabs
+          product={product}
+          products={products}
+          detailSpecs={detailSpecs}
+          reviewsSection={reactions ? <ProductReviews productId={product.id} /> : undefined}
+        />
       </div>
     </main>
   );

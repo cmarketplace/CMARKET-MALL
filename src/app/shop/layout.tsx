@@ -1,6 +1,7 @@
 import { SessionProvider } from "next-auth/react";
 
 import { auth } from "@/auth";
+import { reactionsEnabled } from "@/config/reactions";
 import { IS_SSO_CONFIGURED } from "@/lib/shop-auth";
 
 import { ShopProvider } from "../providers/ShopProvider";
@@ -28,7 +29,8 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
 
   return (
     <SessionProvider session={session}>
-      <ShopProvider>{children}</ShopProvider>
+      {/* 반응 스위치(SHOP_REACTIONS)는 서버 값이라 여기서 읽어 내려보낸다 — 기본 꺼짐 */}
+      <ShopProvider reactionsEnabled={reactionsEnabled()}>{children}</ShopProvider>
     </SessionProvider>
   );
 }

@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ChevronLeft, ReceiptText, ShoppingCart } from 'lucide-react'
+import { ChevronLeft, Heart, ReceiptText, ShoppingCart } from 'lucide-react'
 
 import { TENANT } from '@/config/tenant'
 import { useShop } from '@/app/providers/ShopProvider'
@@ -32,7 +32,7 @@ const SHOP_LINKS: { href: string; label: string; match: (pathname: string) => bo
 ]
 
 export default function ShopNav({ showBack = false }: ShopNavProps) {
-  const { cartCount } = useShop()
+  const { cartCount, reactionsEnabled } = useShop()
   const router = useRouter()
   const pathname = usePathname()
 
@@ -99,6 +99,18 @@ export default function ShopNav({ showBack = false }: ShopNavProps) {
             <ReceiptText size={20} strokeWidth={1.4} />
             <span className="hidden sm:inline">주문 내역</span>
           </Link>
+
+          {/* 내 찜 — 반응 스위치(SHOP_REACTIONS)가 켜졌을 때만 */}
+          {reactionsEnabled && (
+            <Link
+              href="/shop/wishlist"
+              aria-label="내 찜"
+              className="text-muted-strong hover:bg-bg flex min-h-11 items-center gap-2 rounded-full px-2.5 py-2.5 text-base font-semibold transition-colors sm:px-3"
+            >
+              <Heart size={20} strokeWidth={1.4} />
+              <span className="hidden sm:inline">내 찜</span>
+            </Link>
+          )}
 
           {/* Cart */}
           <Link

@@ -9,6 +9,7 @@ import {
   SemoFeedError,
   type StorefrontCategoryGroup,
 } from "@/lib/catalog";
+import { attachSocialProof } from "@/lib/reactions-server";
 import { getShopMember } from "@/lib/shop-member";
 
 // 보는 사람 등급에 따라 목록의 기준값이 빠진다 — 요청마다 그린다.
@@ -31,7 +32,8 @@ export default async function ShopPage() {
       getShopMember(),
     ]);
     categories = index;
-    initialItems = maskProducts(page.items, member?.tier ?? null);
+    // 반응 스위치가 꺼져 있으면 받은 그대로 돌려준다(배지 없음).
+    initialItems = await attachSocialProof(maskProducts(page.items, member?.tier ?? null), member);
     initialTotal = page.total;
   } catch (error) {
     // 피드가 죽은 것과 «상품이 없는 쇼핑몰» 은 손님에게 다르게 보여야 한다.

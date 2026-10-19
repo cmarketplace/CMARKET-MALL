@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bookmark, ChevronDown, Search } from "lucide-react";
+import { Bookmark, ChevronDown, Heart, Search } from "lucide-react";
 
 import { useShop } from "@/app/providers/ShopProvider";
 import type { Product } from "./product.data";
@@ -47,7 +47,8 @@ interface ProductGridProps {
   onLoadMore?: () => void;
 }
 
-export type SortOrder = "recommended" | "price_asc" | "price_desc" | "name";
+/** `reorder`(기관 재구매순)는 반응 스위치가 켜졌을 때만 고를 수 있다 — 꺼져 있으면 목록에 안 나온다. */
+export type SortOrder = "recommended" | "price_asc" | "price_desc" | "name" | "reorder";
 
 const SORT_OPTIONS: { value: SortOrder; label: string }[] = [
   { value: "recommended", label: "추천순" },
@@ -55,6 +56,9 @@ const SORT_OPTIONS: { value: SortOrder; label: string }[] = [
   { value: "price_desc", label: "높은 가격순" },
   { value: "name", label: "이름순" },
 ];
+
+/** 반응 스위치가 켜졌을 때만 붙는 정렬 — 실제 발주기관 재구매·구매가 2곳 이상인 상품이 앞에 온다. */
+const REORDER_OPTION: { value: SortOrder; label: string } = { value: "reorder", label: "기관 재구매순" };
 
 const SUBCATEGORY_PATTERNS: Array<{ label: string; pattern: RegExp }> = [
   { label: "집게 명찰", pattern: /집게명찰|집게 명찰/ },
@@ -102,7 +106,8 @@ export default function ProductGrid({
   hasMore = false,
   onLoadMore,
 }: ProductGridProps) {
-  const { bookmarkedIds } = useShop();
+  const { bookmarkedIds, reactionsEnabled } = useShop();
+  const sortOptions = reactionsEnabled ? [...SORT_OPTIONS, REORDER_OPTION] : SORT_OPTIONS;
 
   // 서버 모드에서는 정렬·북마크의 주인이 위(Shop)다 — 조건이 바뀌면 다시 받아야 하기 때문이다.
   const [localSortOrder, setLocalSortOrder] = useState<SortOrder>("recommended");
@@ -175,7 +180,7 @@ export default function ProductGrid({
   // 「추천순」은 피드가 내려준 순서 그대로다 — 세모 마스터가 승인한 순서에 의미가 있다.
   // sort 는 원본을 뒤집으므로 복사본에 건다.
   const sortedProducts =
-    serverMode || sortOrder === "recommended"
+    serverMode || sortOrder === "recommended" || sortOrder === "reorder"
       ? filteredProducts
       : [...filteredProducts].sort((a, b) => {
           if (sortOrder === "price_asc") return a.basePrice - b.basePrice;
@@ -245,13 +250,13 @@ export default function ProductGrid({
               aria-expanded={isSortOpen}
               className="flex h-10 min-w-28 cursor-pointer items-center justify-between gap-3 rounded-xl bg-bg px-4 text-sm font-semibold text-text transition-colors hover:bg-bg-secondary focus-visible:bg-bg-secondary"
             >
-              {SORT_OPTIONS.find(option => option.value === sortOrder)?.label}
+              {sortOptions.find(option => option.value === sortOrder)?.label}
               <ChevronDown aria-hidden="true" size={16} strokeWidth={1.8} className={`text-muted transition-transform ${isSortOpen ? "rotate-180" : ""}`} />
             </button>
 
             {isSortOpen && (
               <div role="listbox" aria-label="정렬 기준" className="absolute top-full right-0 z-30 mt-2 min-w-40 overflow-hidden rounded-xl bg-white p-1.5 shadow-[0_12px_32px_rgba(24,45,82,0.16)]">
-                {SORT_OPTIONS.map(option => {
+                {sortOptions.map(option => {
                   const isSelected = option.value === sortOrder;
                   return (
                     <button
@@ -284,7 +289,11 @@ export default function ProductGrid({
                 : "bg-highlight-soft text-highlight-strong hover:bg-highlight/30"
             }`}
           >
-            <Bookmark size={16} strokeWidth={1.8} fill={bookmarksOnly ? "currentColor" : "none"} />
+            {reactionsEnabled ? (
+              <Heart size={16} strokeWidth={1.8} fill={bookmarksOnly ? "currentColor" : "none"} />
+            ) : (
+              <Bookmark size={16} strokeWidth={1.8} fill={bookmarksOnly ? "currentColor" : "none"} />
+            )}
             찜한 상품만
           </button>
         </div>

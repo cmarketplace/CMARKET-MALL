@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { useShop } from "@/app/providers/ShopProvider";
 import { getSnapshot as readBookmarkIds } from "@/lib/bookmarks";
-import type { StorefrontCategoryGroup, StorefrontSort } from "@/lib/semo-feed";
+import type { StorefrontCategoryGroup } from "@/lib/semo-feed";
+import { getWishSnapshot } from "@/lib/wishes";
 import type { Product } from "./product.data";
 import ShopNav from "./ShopNav";
 import ShopCategoryFilter from "./ShopCategoryFilter";
-import ProductGrid from "./ProductGrid";
+import ProductGrid, { type SortOrder } from "./ProductGrid";
 
 /**
  * 분류 축은 **세모가 준 것을 그대로 쓴다.**
@@ -53,7 +55,9 @@ export default function Shop({
   const groups = useMemo(() => categories ?? [], [categories]);
 
   const [searchQuery, setSearchQuery] = useState(initialQuery);
-  const [sortOrder, setSortOrder] = useState<StorefrontSort>("recommended");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("recommended");
+  // 반응 스위치가 켜지면 찜은 세모에 있다(`wishes.ts`), 꺼져 있으면 예전처럼 브라우저 북마크다.
+  const { reactionsEnabled } = useShop();
   const [bookmarksOnly, setBookmarksOnly] = useState(false);
 
   /** 뎁스1 — 세모 최상단 분류. `전체` 면 필터를 걸지 않는다 */
@@ -110,7 +114,7 @@ export default function Shop({
 
         if (bookmarksOnly) {
           // 북마크는 목록이 아니라 «이 id 들» 이라 조건이 통째로 다르다.
-          const ids = readBookmarkIds();
+          const ids = reactionsEnabled ? getWishSnapshot() : readBookmarkIds();
           if (ids.length === 0) {
             if (mine === requestId.current) {
               setItems([]);
@@ -156,7 +160,7 @@ export default function Shop({
         }
       }
     },
-    [bookmarksOnly, searchQuery, sortOrder, activeRoot, activeLeaf, activeGroup],
+    [bookmarksOnly, searchQuery, sortOrder, activeRoot, activeLeaf, activeGroup, reactionsEnabled],
   );
 
   /**
