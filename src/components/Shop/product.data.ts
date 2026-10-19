@@ -1,3 +1,5 @@
+import type { SocialProof } from "@/lib/reaction-types";
+
 /** 수량 구간 단가 — «10개부터 23,200원» 한 줄. `minQuantity` 오름차순으로 둔다. */
 export interface PriceTier {
   minQuantity: number;
@@ -106,4 +108,9 @@ export interface Product {
   mdRank?: number | null;
   /** 최근 90일 공공기관 주문 건수. 정렬 축으로만 쓴다. */
   popularity?: number | null;
+  /**
+   * «대학 5곳이 최근 30일 재구매» — 반응 스위치(`SHOP_REACTIONS`)가 켜졌을 때만 서버가 붙인다.
+   * 실제 발주기관 주문만 세고 2곳 미만이면 세모가 주지 않는다(가짜·부풀린 숫자 금지).
+   */
+  socialProof?: SocialProof | null;
 }

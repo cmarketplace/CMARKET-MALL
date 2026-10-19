@@ -7,6 +7,8 @@ import {
   SemoFeedError,
   type StorefrontSort,
 } from "@/lib/catalog";
+import { reactionsEnabled } from "@/config/reactions";
+import { attachSocialProof, reorderRanking } from "@/lib/reactions-server";
 import { getShopMember } from "@/lib/shop-member";
 
 const SORTS: StorefrontSort[] = ["recommended", "price_asc", "price_desc", "name"];
@@ -34,21 +36,31 @@ export async function GET(request: Request) {
     const ids = params.get("ids");
     if (ids) {
       const items = await fetchProductsByIds(ids.split(",").filter(Boolean));
-      const masked = items.map(item => maskForViewer(item, tier));
+      // 반응 스위치가 꺼져 있으면 attachSocialProof 는 받은 그대로 돌려준다.
+      const masked = await attachSocialProof(items.map(item => maskForViewer(item, tier)), member);
       return NextResponse.json({ items: masked, total: masked.length });
     }
 
     const sortParam = params.get("sort") as StorefrontSort | null;
-    const page = await fetchStorefrontPage({
+    const query = {
       q: params.get("q") ?? undefined,
       categoryId: params.get("categoryId") ?? undefined,
       rootCategoryId: params.get("rootCategoryId") ?? undefined,
       sort: sortParam && SORTS.includes(sortParam) ? sortParam : undefined,
       limit: Math.min(Number(params.get("limit")) || 120, 500),
       offset: Math.max(Number(params.get("offset")) || 0, 0),
-    });
+    };
 
-    return NextResponse.json({ ...page, items: page.items.map(item => maskForViewer(item, tier)) });
+    // «기관 재구매순» 은 반응 스위치가 켜졌을 때만 있는 정렬이다(꺼져 있으면 위에서 추천순으로 떨어진다).
+    if (params.get("sort") === "reorder" && reactionsEnabled()) {
+      const items = await reorderFirst(query);
+      const masked = await attachSocialProof(items.items.map(item => maskForViewer(item, tier)), member);
+      return NextResponse.json({ items: masked, total: items.total });
+    }
+
+    const page = await fetchStorefrontPage(query);
+    const masked = await attachSocialProof(page.items.map(item => maskForViewer(item, tier)), member);
+    return NextResponse.json({ ...page, items: masked });
   } catch (error) {
     // 피드 장애를 빈 목록으로 삼키면 화면에서 품절과 구분되지 않는다.
     const message =
@@ -56,4 +68,32 @@ export async function GET(request: Request) {
     console.error("[shop/api]", message);
     return NextResponse.json({ error: message }, { status: 502 });
   }
+}
+
+/**
+ * «기관 재구매순» — 사회적 증거가 있는 상품(실제 발주기관 재구매·구매 2곳 이상)을 앞에, 나머지는 추천순.
+ *
+ * 분류·검색이 걸려 있으면 그 쪽 안에서만 앞으로 당긴다(다른 분류 상품을 끼워 넣지 않는다).
+ * «전체» 첫 쪽이면 순위 상품을 맨 앞에 싣고, 다음 쪽들에서는 이미 실은 것을 뺀다 — 합계는 그대로다.
+ */
+async function reorderFirst(query: Parameters<typeof fetchStorefrontPage>[0] & { offset: number }) {
+  const [ranked, page] = await Promise.all([
+    reorderRanking(),
+    fetchStorefrontPage({ ...query, sort: undefined }),
+  ]);
+  if (ranked.length === 0) return page;
+
+  const rank = new Map(ranked.map((id, index) => [id, index]));
+  const filtered = Boolean(query.q || query.categoryId || query.rootCategoryId);
+  if (filtered) {
+    const front = page.items
+      .filter(item => rank.has(item.id))
+      .sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
+    return { items: [...front, ...page.items.filter(item => !rank.has(item.id))], total: page.total };
+  }
+
+  const rest = page.items.filter(item => !rank.has(item.id));
+  if (query.offset > 0) return { items: rest, total: page.total };
+  const rankedProducts = await fetchProductsByIds(ranked);
+  return { items: [...rankedProducts, ...rest], total: page.total };
 }

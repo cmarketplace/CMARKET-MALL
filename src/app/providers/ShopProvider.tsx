@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useSyncExternalStore } from 'react'
+import { createContext, useContext, useEffect, useSyncExternalStore } from 'react'
 
 import type { Product } from '@/components/Shop/product.data'
 import {
@@ -20,6 +20,14 @@ import {
   subscribe,
   toggleBookmarkId,
 } from '@/lib/bookmarks'
+import {
+  ensureWishesLoaded,
+  getWishError,
+  getWishServerSnapshot,
+  getWishSnapshot,
+  subscribeWishes,
+  toggleWish,
+} from '@/lib/wishes'
 
 interface ShopContextValue {
   cartItems: CartLine[]
@@ -33,11 +41,24 @@ interface ShopContextValue {
   bookmarkedIds: string[]
   isBookmarked: (productId: string) => boolean
   toggleBookmark: (productId: string) => void
+  /**
+   * 반응 스위치(`SHOP_REACTIONS`) — 켜지면 찜이 하트·세모 저장으로 바뀌고 배지·후기·내 찜이 보인다.
+   * 꺼져 있으면(기본) 지금 화면 그대로: 북마크(브라우저 저장)·배지 없음.
+   */
+  reactionsEnabled: boolean
 }
 
 const ShopContext = createContext<ShopContextValue | null>(null)
 
-export function ShopProvider({ children }: { children: React.ReactNode }) {
+const noError = () => null
+
+export function ShopProvider({
+  children,
+  reactionsEnabled = false,
+}: {
+  children: React.ReactNode
+  reactionsEnabled?: boolean
+}) {
   // 장바구니·북마크 둘 다 새로고침과 다른 탭에 남아야 해서 localStorage 를 외부 스토어로
   // 구독한다. 자세한 이유는 src/lib/cart.ts, src/lib/bookmarks.ts 주석 참고.
   const cartItems = useSyncExternalStore(
@@ -45,7 +66,15 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
     getCartSnapshot,
     getCartServerSnapshot,
   )
-  const bookmarkedIds = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  const localBookmarkIds = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  // 훅은 늘 같은 순서로 부른다 — 스위치가 꺼져 있으면 찜 스토어는 비어 있고 아무도 채우지 않는다.
+  const wishIds = useSyncExternalStore(subscribeWishes, getWishSnapshot, getWishServerSnapshot)
+  const wishError = useSyncExternalStore(subscribeWishes, getWishError, noError)
+  const bookmarkedIds = reactionsEnabled ? wishIds : localBookmarkIds
+
+  useEffect(() => {
+    if (reactionsEnabled) ensureWishesLoaded()
+  }, [reactionsEnabled])
 
   const isBookmarked = (productId: string) => bookmarkedIds.includes(productId)
 
@@ -70,10 +99,19 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
         clearCart: clearLines,
         bookmarkedIds,
         isBookmarked,
-        toggleBookmark: toggleBookmarkId,
+        toggleBookmark: reactionsEnabled ? productId => void toggleWish(productId) : toggleBookmarkId,
+        reactionsEnabled,
       }}
     >
       {children}
+      {reactionsEnabled && wishError && (
+        <p
+          role="status"
+          className="bg-text fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full px-4 py-2.5 text-sm font-medium text-white shadow-lg"
+        >
+          {wishError}
+        </p>
+      )}
     </ShopContext.Provider>
   )
 }

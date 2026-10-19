@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Bookmark, ShoppingCart } from "lucide-react";
+import { Bookmark, Heart, ShoppingCart } from "lucide-react";
 
 import type { Product } from "./product.data";
 import GradeBadge from "./GradeBadge";
 import Price from "./Price";
+import SocialProofBadge from "./SocialProofBadge";
 import { useShop } from "@/app/providers/ShopProvider";
 import { bandPosition, priceGrade } from "@/lib/offer-pricing";
 
@@ -15,7 +16,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const { cartItems, addToCart, removeFromCart, isBookmarked, toggleBookmark } = useShop();
+  const { cartItems, addToCart, removeFromCart, isBookmarked, toggleBookmark, reactionsEnabled } = useShop();
 
   const isInCart = cartItems.some(item => item.product.id === product.id);
   const bookmarked = isBookmarked(product.id);
@@ -82,7 +83,11 @@ export default function ProductCard({ product }: ProductCardProps) {
         <button
           type="button"
           onClick={handleBookmarkClick}
-          aria-label={`${product.name} 북마크 ${bookmarked ? "해제" : "저장"}`}
+          aria-label={
+            reactionsEnabled
+              ? `${product.name} 찜 ${bookmarked ? "해제" : "하기"}`
+              : `${product.name} 북마크 ${bookmarked ? "해제" : "저장"}`
+          }
           aria-pressed={bookmarked}
           /* 보이는 크기는 32px 그대로 두고 `before` 로 터치 영역만 44px 로 넓힌다.
            * 목록 한 화면에 이 버튼이 20개 넘게 깔리는데 32px 은 손가락으로 누르기에
@@ -90,7 +95,17 @@ export default function ProductCard({ product }: ProductCardProps) {
            * 시각 크기는 건드리지 않는다. */
           className="absolute top-2.5 right-2.5 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-white transition-colors duration-200 before:absolute before:-inset-1.5 before:content-[''] hover:bg-white/15"
         >
-          <Bookmark size={18} strokeWidth={1.8} fill={bookmarked ? "currentColor" : "none"} />
+          {/* 반응 스위치가 켜지면 찜(하트·세모 저장), 꺼져 있으면 예전 북마크(브라우저 저장) 그대로 */}
+          {reactionsEnabled ? (
+            <Heart
+              size={18}
+              strokeWidth={1.8}
+              fill={bookmarked ? "currentColor" : "none"}
+              className={bookmarked ? "text-rose-500" : undefined}
+            />
+          ) : (
+            <Bookmark size={18} strokeWidth={1.8} fill={bookmarked ? "currentColor" : "none"} />
+          )}
         </button>
 
         {/* Add Cart */}
@@ -151,6 +166,9 @@ export default function ProductCard({ product }: ProductCardProps) {
           )}
           <GradeBadge grade={grade} />
         </div>
+
+        {/* «대학 5곳이 최근 30일 재구매» — 반응 스위치가 켜졌고 실제 기관 2곳 이상일 때만 서버가 붙인다 */}
+        {product.socialProof && <SocialProofBadge proof={product.socialProof} className="mt-1.5" />}
       </Link>
     </article>
   );

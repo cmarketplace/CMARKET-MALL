@@ -121,6 +121,24 @@ npm run dev
 - **배포 순서는 여전히 세모 먼저.** 세모가 `payerMemberId` 를 읽기 전에 몰이 나가면 모르는 필드로 버려져 직원 주문·
   결제수단 조회가 세모의 옛 규칙대로 판정된다.
 
+## 2026-10-19 — 반응(찜·사회적 증거·납품 사진 후기) · 스위치 `SHOP_REACTIONS` (기본 꺼짐)
+
+대표 결정 «좋은데 모두 만들자». **꺼져 있으면 지금 화면과 같다**(북마크=브라우저 저장, 배지·후기·내 찜 없음,
+`/shop/wishlist`·`/api/shop/reactions/*` 는 404). 켜는 법: Vercel 환경변수 `SHOP_REACTIONS=1` → 재배포.
+**세모 반응 API(세모 PR #1473)가 운영에 나간 뒤** 켠다.
+
+| 켜면 | 어디 | 원본 |
+| --- | --- | --- |
+| 찜(하트) — 카드·상세, 헤더 «내 찜» `/shop/wishlist`(찜할 때 값 대비 지금 값·최근 알림) | `lib/wishes.ts`(외부 스토어) | 세모 `storefront_item_wishes` |
+| 가격 내림·재입고 알림 — 하루 1회, 세모 앱 벨 + «내 찜» 화면 | 세모 스케줄러(매일 10시) | 세모 `storefront_reaction_alerts` |
+| «대학 5곳이 최근 30일 재구매» 배지 · 정렬 «기관 재구매순» | `SocialProofBadge`, `/api/shop/items?sort=reorder` | 세모 주문 원장(발주기관만·2곳 미만 숨김) |
+| 납품 사진 후기(구매확정한 사람만·사진 4장) · 도움돼요 · 신고 | 상세 «후기» 칸 `ProductReviews` | 세모 `storefront_item_reviews` |
+| 상세 열람 기록 → 판매자 센터 «기관 N곳이 다시 봤어요» | 상세 페이지 `after()` | 세모 `storefront_item_views` |
+
+- 사람은 언제나 세션 memberKey(씨마켓 sub)로 세모에 보낸다(`lib/semo-reactions.ts`). 숫자는 세모가 센 그대로 — 몰은 지어내지 않는다.
+- 후기 사진은 브라우저에서 긴 변 1600px JPEG 로 줄여 보낸다(Vercel 요청 4.5MB 상한).
+- 세모 키 없는 로컬은 프로세스 메모리 스텁이 찜만 기억한다(배지·후기·알림은 비어 있다).
+
 ## 구조
 
 ```

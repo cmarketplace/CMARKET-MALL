@@ -6,28 +6,36 @@ import { useEffect, useMemo, useState } from "react";
 import type { Product } from "../product.data";
 import RecommendedProducts from "./RecommendedProducts";
 
-type SectionId = "overview" | "specifications" | "delivery";
+type SectionId = "overview" | "specifications" | "delivery" | "reviews";
 
 interface ProductDetailTabsProps {
   product: Product;
   products: Product[];
   detailSpecs: [string, string][];
+  /**
+   * 납품 사진 후기 칸 — 반응 스위치(`SHOP_REACTIONS`)가 켜졌을 때만 상세 화면이 넘긴다.
+   * 없으면 탭·섹션이 지금과 똑같다.
+   */
+  reviewsSection?: React.ReactNode;
 }
 
 export default function ProductDetailTabs({
   product,
   products,
   detailSpecs,
+  reviewsSection,
 }: ProductDetailTabsProps) {
   const hasSpecifications = detailSpecs.length > 0;
   const hasRecommendations = products.some(item => item.id !== product.id);
+  const hasReviews = Boolean(reviewsSection);
   const sections = useMemo(
     () => [
       ...(hasSpecifications ? [{ id: "specifications" as const, label: "규격 정보" }] : []),
       { id: "overview" as const, label: "상품 정보" },
       { id: "delivery" as const, label: "배송 안내" },
+      ...(hasReviews ? [{ id: "reviews" as const, label: "후기" }] : []),
     ],
-    [hasSpecifications],
+    [hasSpecifications, hasReviews],
   );
   const [activeSection, setActiveSection] = useState<SectionId>(
     hasSpecifications ? "specifications" : "overview",
@@ -231,6 +239,20 @@ export default function ProductDetailTabs({
             </div>
           </div>
         </section>
+
+        {hasReviews && (
+          <section
+            id="reviews"
+            aria-labelledby="reviews-heading"
+            style={{ scrollMarginTop: "10rem" }}
+            className="mt-14"
+          >
+            <h2 id="reviews-heading" className="text-xl font-semibold text-text">
+              납품 사진 후기
+            </h2>
+            {reviewsSection}
+          </section>
+        )}
 
         {hasRecommendations && (
           <div id="recommendations" className="scroll-mt-36">
