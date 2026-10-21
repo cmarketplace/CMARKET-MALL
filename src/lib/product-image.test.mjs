@@ -113,8 +113,19 @@ test("피드의 실제 사진이 언제나 이긴다", () => {
   const real = "https://image.officedepot.co.kr/goods/123.jpg";
   assert.equal(productImage({ imageUrl: real, rootCategoryName: "사무용품", name: NEUTRAL }), real);
   assert.equal(productImage({ imageUrl: real, categoryName: "시약", name: NEUTRAL }), real);
-  // 못 믿을 값은 버리고 대분류 그림으로
-  for (const bad of ["", "  ", "http://image.officedepot.co.kr/a.jpg", "https://evil.example/a.jpg", "/a.jpg"]) {
+  // 우체국 B2B몰 사진(선장품·생활/주방)과 세모 저장소(공급사 승인 사진)도 실제 사진이다
+  for (const ok of [
+    "https://image.epost.go.kr/btob/img/upload/goods/202402/202402201919523240",
+    "https://iznoxdtmpthtdjrzglsp.supabase.co/storage/v1/object/public/assets/items/proposals/a.jpg",
+  ]) {
+    assert.equal(productImage({ imageUrl: ok, rootCategoryName: "선장품", name: NEUTRAL }), ok);
+  }
+  // 못 믿을 값은 버리고 대분류 그림으로 — 허용 호스트라도 경로가 다르면(next/image 가 400) 버린다
+  for (const bad of [
+    "", "  ", "http://image.officedepot.co.kr/a.jpg", "https://evil.example/a.jpg", "/a.jpg",
+    "https://image.epost.go.kr/other/a.jpg",
+    "https://iznoxdtmpthtdjrzglsp.supabase.co/storage/v1/object/sign/assets/a.jpg",
+  ]) {
     assert.equal(
       productImage({ imageUrl: bad, rootCategoryName: "사무용품", name: NEUTRAL }),
       "/images/category/office-supplies.svg",

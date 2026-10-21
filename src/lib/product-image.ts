@@ -12,7 +12,14 @@ import { PRODUCT_IMAGES } from "@/components/Shop/image.data";
  * **같이 움직여야 한다** — 한쪽만 늘리면 `_next/image` 가 400 을 내고 이미지가 통째로
  * 사라진다(그때는 아래 대표 이미지로 떨어지는 게 낫다).
  */
-const ALLOWED_IMAGE_HOSTS = new Set(["image.officedepot.co.kr"]);
+const ALLOWED_IMAGE_SOURCES: ReadonlyArray<{ host: string; pathPrefix: string }> = [
+  { host: "image.officedepot.co.kr", pathPrefix: "/" },
+  // 선장품·생활/주방 사진 3,340종(2026-10-21)이 우체국 B2B몰 사진이다. 빠져 있어 전부 대표 이미지로 떨어졌다.
+  { host: "image.epost.go.kr", pathPrefix: "/btob/" },
+  // 공급사가 «사진 고치기»로 올려 승인된 사진(세모 운영·스테이징 저장소의 공개 버킷)
+  { host: "iznoxdtmpthtdjrzglsp.supabase.co", pathPrefix: "/storage/v1/object/public/" },
+  { host: "ywujufqyvpxmboxvqvhs.supabase.co", pathPrefix: "/storage/v1/object/public/" },
+];
 
 /**
  * 피드의 `imageUrl` 을 화면에 쓸 수 있는지 판정한다.
@@ -25,16 +32,20 @@ export function remoteImage(imageUrl: string | null | undefined): string | null 
   const raw = imageUrl?.trim();
   if (!raw) return null;
 
-  let host: string;
+  let parsed: URL;
   try {
-    const parsed = new URL(raw);
-    if (parsed.protocol !== "https:") return null;
-    host = parsed.hostname;
+    parsed = new URL(raw);
   } catch {
     return null; // 상대경로·깨진 값
   }
+  if (parsed.protocol !== "https:") return null;
 
-  return ALLOWED_IMAGE_HOSTS.has(host) ? raw : null;
+  // 허용 호스트라도 경로가 next.config 의 pathname 밖이면 `_next/image` 가 400 을 낸다 → 같이 거른다
+  return ALLOWED_IMAGE_SOURCES.some(
+    (source) => parsed.hostname === source.host && parsed.pathname.startsWith(source.pathPrefix),
+  )
+    ? raw
+    : null;
 }
 
 /**
