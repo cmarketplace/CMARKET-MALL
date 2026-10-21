@@ -6,7 +6,9 @@ import ReorderPanel from '@/components/Shop/Home/ReorderPanel'
 import SeasonStrip from '@/components/Shop/Home/SeasonStrip'
 import SubscriptionHero from '@/components/Shop/Home/SubscriptionHero'
 import { kstToday } from '@/config/seasons'
+import RecommendedCarousel from '@/components/Shop/RecommendedCarousel'
 import {
+  fetchBuyerShelves,
   fetchCuration,
   fetchStorefrontCategories,
   isStubCatalog,
@@ -63,6 +65,21 @@ export default async function ShopHomePage() {
     feedFailed = true
   }
 
+  // 기관 맞춤 선반 — 발주기관(BUYER) 계정만. 씨마켓 공고 이력으로 «우리 기관 / 비슷한 유형 기관» 이
+  // 자주 산 품목. 실패하거나 묶음에 없는 계정이면 선반 없이 그린다(섹션 단위 흡수).
+  let shelves: Awaited<ReturnType<typeof fetchBuyerShelves>> = []
+  if (member?.role === 'BUYER') {
+    try {
+      shelves = (await fetchBuyerShelves(member.memberId)).map(shelf => ({
+        ...shelf,
+        items: maskProducts(shelf.items, member.tier),
+      }))
+    } catch (error) {
+      if (!(error instanceof SemoFeedError)) throw error
+      console.error('[shop/home shelves]', error.message)
+    }
+  }
+
   let orders: StorefrontOrder[] = []
   if (member) {
     try {
@@ -104,6 +121,14 @@ export default async function ShopHomePage() {
           <p className="bg-blue-tint-2 text-primary rounded-xl px-4 py-2.5 text-xs font-semibold">
             공급사 계정으로 보고 계십니다 — 세모네모 판매가로 구매할 수 있고, 주문은 씨마켓 안전결제로 진행됩니다.
           </p>
+        )}
+
+        {shelves.length > 0 && (
+          <div className="space-y-10">
+            {shelves.map(shelf => (
+              <RecommendedCarousel key={shelf.kind} title={shelf.label} products={shelf.items} className="" limit={12} />
+            ))}
+          </div>
         )}
 
         <SubscriptionHero loggedIn={Boolean(member)} plans={plans} pointBalance={pointBalance} />

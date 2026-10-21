@@ -379,6 +379,37 @@ export async function fetchMandatoryPrograms(): Promise<MandatoryProgramIndex | 
   };
 }
 
+/** 기관 맞춤 선반 한 줄(세모 `GET …/buyer-shelves`) */
+export interface StorefrontShelf {
+  /** org = 우리 기관, type = 비슷한 유형 기관 */
+  kind: "org" | "type";
+  label: string;
+  items: Product[];
+}
+
+/**
+ * 기관 맞춤 선반 — «우리 기관이 자주 산 품목» · «비슷한 유형 기관이 자주 산 품목».
+ *
+ * 씨마켓 발주 계정 id 를 서버 간 호출로만 넘긴다(브라우저로 내려가지 않는다). 세모는 원문을 저장하지 않고
+ * 해시로 찾는다. 묶음에 없는 계정이거나 세모에 경로가 아직 없으면 빈 배열 — 홈은 선반 없이 그린다.
+ */
+export async function fetchBuyerShelves(memberId: string): Promise<StorefrontShelf[]> {
+  const { slug } = feedConfig();
+  const result = await callFeed<{ shelves?: Array<{ kind?: string; label?: string; items?: StorefrontItem[] }> }>(
+    `/external/storefronts/${encodeURIComponent(slug)}/buyer-shelves`,
+    { memberId },
+    { allowNotFound: true },
+  );
+  return (result?.shelves ?? [])
+    .filter(shelf => (shelf.kind === "org" || shelf.kind === "type") && typeof shelf.label === "string")
+    .map(shelf => ({
+      kind: shelf.kind === "org" ? ("org" as const) : ("type" as const),
+      label: shelf.label ?? "",
+      items: (shelf.items ?? []).map(toProduct),
+    }))
+    .filter(shelf => shelf.items.length > 0);
+}
+
 /** 상품 한 쪽. 필터·정렬·건수는 서버가 한다 */
 export async function fetchStorefrontPage(
   query: StorefrontQuery = {},
