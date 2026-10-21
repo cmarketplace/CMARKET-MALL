@@ -1,4 +1,5 @@
 import type { CatalogOffer, MarketBenchmark, Product } from '@/components/Shop/product.data'
+import { quoteLinkPrice } from '@/config/link-errand'
 
 /**
  * 공급사별 단가 계산 — **순수 함수만** 둔다(React·저장소·부수효과 없음).
@@ -8,8 +9,20 @@ import type { CatalogOffer, MarketBenchmark, Product } from '@/components/Shop/p
  * 1위 업체가 달라지는 날이 온다.
  */
 
-/** 수량 `quantity` 에서 이 오퍼의 단가. 구간이 없으면 기본 단가다. */
+/**
+ * 수량 `quantity` 에서 이 오퍼의 단가. 구간이 없으면 기본 단가다.
+ * «링크로 바로 사기» 오퍼는 심부름값이 줄당 한 번이라 수량으로 다시 계산한다(세모 주문 확정과 같은 식).
+ */
 export function unitPriceAt(offer: CatalogOffer, quantity: number): number {
+  if (offer.link) {
+    const quote = quoteLinkPrice({
+      linkPrice: offer.link.linkPrice,
+      shipping: offer.link.shipping,
+      quantity: Math.max(1, Math.floor(quantity)),
+      includeVat: offer.link.includeVat,
+    })
+    if (quote) return quote.unitPrice
+  }
   let price = offer.price
   for (const tier of offer.tiers) {
     if (quantity >= tier.minQuantity && tier.price < price) price = tier.price

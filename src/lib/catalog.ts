@@ -143,6 +143,8 @@ function collapseOffers(offers: CatalogOffer[]): CatalogOffer {
     // 진짜 업체를 숨기면 업체 단위 배송비도 계산할 수 없다 — 확정 시 세모가 잡는다.
     shippingFee: null,
     freeShippingOver: null,
+    // «링크로 바로 사기» 오퍼만 있는 상품은 수량별 단가 근거를 그대로 둔다(판매자 실명은 근거에 없다).
+    ...(offers.length === 1 && offers[0].link ? { link: offers[0].link } : {}),
   }
 }
 

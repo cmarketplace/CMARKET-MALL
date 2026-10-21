@@ -39,6 +39,10 @@ import {
   toOrderLine,
 } from '@/lib/place-order'
 import { isQuoteValid, quoteMatchesLines, QUOTE_UNUSABLE_CODE } from '@/lib/quote-types'
+import { useShop } from '@/app/providers/ShopProvider'
+import { syncPrices } from '@/lib/cart'
+import { refreshLinkPrices } from '@/lib/link-items-client'
+import { readAtLabel } from '@/lib/link-items-types'
 
 interface CheckoutViewProps {
   /** 로그인한 담당자 이름. 없으면 주문 버튼이 로그인 문으로 안내한다. */
@@ -105,6 +109,9 @@ export default function CheckoutView({
   const [cardPassword, setCardPassword] = useState('')
   const [isPlacing, setIsPlacing] = useState(false)
   const [orderError, setOrderError] = useState<string | null>(null)
+  /** 결제 직전 다시 읽은 링크 상품 가격 — 바뀌었으면 주문을 멈추고 알린다 */
+  const [linkNotice, setLinkNotice] = useState<{ tone: 'changed' | 'info'; lines: string[] } | null>(null)
+  const { linkBuyEnabled } = useShop()
   const [needsLogin, setNeedsLogin] = useState(false)
   const orderKeyRef = useRef<string | null>(null)
 
@@ -186,6 +193,39 @@ export default function CheckoutView({
     setOrderError(null)
     setNeedsLogin(false)
     setIsPlacing(true)
+
+    // «링크로 바로 사기» 상품은 주문 직전에 인터넷 판매가를 다시 읽는다. 바뀌었으면 새 단가로 장바구니를 고치고 멈춘다 —
+    // 손님이 바뀐 금액을 보고 다시 눌러야 결제된다(같은 키로 이어지지 않게 주문 키도 아직 만들지 않는다).
+    if (linkBuyEnabled && !orderKeyRef.current) {
+      const linkLines = lines.filter(line => line.offer.link)
+      if (linkLines.length > 0) {
+        const checked = await refreshLinkPrices(linkLines.map(line => line.product.id))
+        const changed = (checked ?? []).filter(item => item.changed)
+        if (changed.length > 0) {
+          await syncPrices()
+          const nameOf = (itemId: string) => lines.find(line => line.product.id === itemId)?.product.name ?? '링크 상품'
+          setLinkNotice({
+            tone: 'changed',
+            lines: changed.map(
+              item =>
+                `${nameOf(item.itemId).slice(0, 40)}: 인터넷 판매가 ${won(item.before.linkPrice)}원 → ${won(item.after.linkPrice)}원` +
+                (item.after.readAt ? `(${readAtLabel(item.after.readAt)} 기준)` : ''),
+            ),
+          })
+          setIsPlacing(false)
+          return
+        }
+        const unreadable = (checked ?? []).filter(item => item.status === 'unreadable' || item.status === 'customer')
+        setLinkNotice(
+          checked === null || unreadable.length > 0
+            ? {
+                tone: 'info',
+                lines: ['쇼핑몰 가격을 지금 다시 확인하지 못한 상품이 있어 마지막으로 확인한 가격으로 주문합니다. 씨마켓이 구매 전에 확인합니다.'],
+              }
+            : null,
+        )
+      }
+    }
     orderKeyRef.current ??= newOrderKey()
 
     try {
@@ -697,6 +737,22 @@ export default function CheckoutView({
                   로그인하러 가기
                 </Link>
               </p>
+            )}
+            {linkNotice && (
+              <div
+                role={linkNotice.tone === 'changed' ? 'alert' : 'status'}
+                className={`mt-4 rounded-xl px-4 py-3 text-sm leading-5 ${
+                  linkNotice.tone === 'changed' ? 'bg-[#FDECEC] text-[#B3261E]' : 'bg-blue-tint text-muted-strong'
+                }`}
+              >
+                {linkNotice.tone === 'changed' && <p className="font-semibold">인터넷 판매가가 바뀌어 단가를 새 가격으로 고쳤어요</p>}
+                <ul className="mt-1 space-y-0.5">
+                  {linkNotice.lines.map(line => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+                {linkNotice.tone === 'changed' && <p className="mt-1">바뀐 금액을 확인하고 다시 주문해 주세요.</p>}
+              </div>
             )}
             {orderError && (
               <p role="alert" className="mt-4 rounded-xl bg-[#FDECEC] px-4 py-3 text-sm leading-5 text-[#B3261E]">

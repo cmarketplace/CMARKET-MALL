@@ -42,6 +42,28 @@ export interface CatalogOffer {
   shippingFee: number | null;
   /** 이 금액(공급가액) 이상이면 배송비 면제. null 이면 항상 부과(배송비가 있을 때). */
   freeShippingOver: number | null;
+  /**
+   * «링크로 바로 사기» 오퍼면 가격 근거(인터넷 판매가·배송비·읽은 시각). 있으면 단가가 수량에 따라 다르다
+   * (심부름값이 줄당 한 번 — `config/link-errand.ts` `quoteLinkPrice`). 선택 필드 — 옛 장바구니 줄에는 없다.
+   */
+  link?: LinkOfferBasis;
+}
+
+/** 링크 오퍼의 가격 근거 — 세모 `link-items/basis` 응답과 같은 모양(필요한 것만) */
+export interface LinkOfferBasis {
+  offeringId: string;
+  url: string;
+  shopName: string;
+  /** 인터넷 판매가(개당, 부가세 포함) */
+  linkPrice: number;
+  /** 인터넷 배송비(부가세 포함) */
+  shipping: number;
+  errandFee: number;
+  /** 'jsonld' | 'meta' | 'naver_api' | 'customer'(손님이 적은 값 — 구매 전 확인) */
+  priceMethod: string | null;
+  readAt: string | null;
+  /** 몰 가격 축 */
+  includeVat: boolean;
 }
 
 /**

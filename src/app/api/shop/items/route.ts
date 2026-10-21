@@ -7,8 +7,10 @@ import {
   SemoFeedError,
   type StorefrontSort,
 } from "@/lib/catalog";
+import { linkBuyEnabled } from "@/config/link-buy";
 import { reactionsEnabled } from "@/config/reactions";
 import { attachSocialProof, reorderRanking } from "@/lib/reactions-server";
+import { attachLinkBasis, stubLinkProducts } from "@/lib/semo-link-items";
 import { getShopMember } from "@/lib/shop-member";
 
 const SORTS: StorefrontSort[] = ["recommended", "price_asc", "price_desc", "name"];
@@ -35,7 +37,13 @@ export async function GET(request: Request) {
 
     const ids = params.get("ids");
     if (ids) {
-      const items = await fetchProductsByIds(ids.split(",").filter(Boolean));
+      const idList = ids.split(",").filter(Boolean);
+      let items = await fetchProductsByIds(idList);
+      // «링크로 바로 사기» 상품은 수량별 단가 근거(인터넷 판매가·배송비)를 오퍼에 붙인다 — 스위치가 꺼져 있으면 그대로.
+      if (linkBuyEnabled()) {
+        const found = new Set(items.map(item => item.id));
+        items = await attachLinkBasis([...items, ...stubLinkProducts(idList.filter(id => !found.has(id)))]);
+      }
       // 반응 스위치가 꺼져 있으면 attachSocialProof 는 받은 그대로 돌려준다.
       const masked = await attachSocialProof(items.map(item => maskForViewer(item, tier)), member);
       return NextResponse.json({ items: masked, total: masked.length });

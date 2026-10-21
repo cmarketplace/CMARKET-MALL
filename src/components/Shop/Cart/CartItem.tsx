@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 
 import { useShop } from "@/app/providers/ShopProvider";
 import type { AssignedLine, CombinationMode } from "@/lib/cart-combination";
+import { readAtLabel } from "@/lib/link-items-types";
 import { effectiveOffers, rankOffers, supplierLabel, unitPriceAt } from "@/lib/offer-pricing";
 import QuantityStepper from "../QuantityStepper";
 
@@ -54,6 +55,12 @@ export default function CartItem({ line, mode, selected, onToggleSelect }: CartI
       <div className="min-w-0">
         <h3 className="text-text truncate text-sm font-semibold sm:text-[15px]">{product.name}</h3>
         {metaLine && <p className="text-muted mt-0.5 truncate text-xs">{metaLine}</p>}
+        {offer.link && (
+          <p className="text-muted mt-0.5 truncate text-[11px]">
+            {offer.link.shopName} {won(offer.link.linkPrice)}원
+            {offer.link.readAt ? ` (${readAtLabel(offer.link.readAt)} 기준)` : ""} + 심부름값 {won(offer.link.errandFee)}원을 수량으로 나눔
+          </p>
+        )}
       </div>
 
       {/* 업체 — 모드에 따라 셀렉트 또는 칩 */}
@@ -72,7 +79,7 @@ export default function CartItem({ line, mode, selected, onToggleSelect }: CartI
             ))}
           </select>
         ) : offers.length <= 1 && !offer.supplierName ? (
-          <span className="text-muted text-xs">세모네모 판매가</span>
+          <span className="text-muted text-xs">{offer.link ? "씨마켓 구매대행" : "세모네모 판매가"}</span>
         ) : (
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="bg-white text-text inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold">
