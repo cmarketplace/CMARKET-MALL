@@ -2,6 +2,7 @@
 
 import Sparkline from '@/components/Shop/Sparkline'
 import type { CatalogOffer } from '@/components/Shop/product.data'
+import { offerBadges } from '@/lib/mandatory'
 import { rankOffers, supplierLabel, unitPriceAt } from '@/lib/offer-pricing'
 
 interface OfferTableProps {
@@ -75,6 +76,16 @@ export default function OfferTable({
                     <p className="text-muted text-[11px]">
                       {isBest ? '자동 선정' : !selectable ? '' : isSelected ? '직접 고름' : '선택하려면 클릭'}
                     </p>
+                    {/* 업체 단위 의무구매 제도 — 이 판매처에서 사야 실적으로 인정된다 */}
+                    {offerBadges(offer.programs).length > 0 && (
+                      <p className="mt-1 flex flex-wrap gap-1" aria-label="이 판매처의 의무구매 인증">
+                        {offerBadges(offer.programs).map(label => (
+                          <span key={label} className="bg-light-soft text-primary rounded px-1.5 py-0.5 text-[10px] font-semibold">
+                            {label}
+                          </span>
+                        ))}
+                      </p>
+                    )}
                   </td>
                   <td className="text-text py-3 pr-3 text-right font-semibold tabular-nums whitespace-nowrap">{won(unit)}원</td>
                   <td className="text-text py-3 pr-3 text-right tabular-nums whitespace-nowrap">{won(unit * quantity)}원</td>

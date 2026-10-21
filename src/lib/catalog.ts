@@ -38,6 +38,12 @@ export async function fetchStorefrontPage(query: semo.StorefrontQuery = {}) {
   return semo.fetchStorefrontPage(query)
 }
 
+/** 법적 구매 칩. 예시 카탈로그에는 제도가 없어 탭을 감춘다(null) */
+export async function fetchMandatoryPrograms() {
+  if (isStubCatalog()) return null
+  return semo.fetchMandatoryPrograms()
+}
+
 /** 상품 한 건, 오퍼 없이. 목록·추천용. */
 export async function fetchStorefrontProduct(itemId: string): Promise<Product | null> {
   if (isStubCatalog()) return stubProduct(itemId, false)

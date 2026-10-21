@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 
 import { useShop } from "@/app/providers/ShopProvider";
 import { getSnapshot as readBookmarkIds } from "@/lib/bookmarks";
+import { ANY_PROGRAM, type MandatoryProgramIndex } from "@/lib/mandatory";
 import type { StorefrontCategoryGroup } from "@/lib/semo-feed";
 import { getWishSnapshot } from "@/lib/wishes";
 import type { Product } from "./product.data";
@@ -32,18 +33,23 @@ interface ShopProps {
   initialTotal?: number;
   /** 피드를 못 불러왔다. «상품 0건» 과는 다른 안내를 띄운다. */
   loadFailed?: boolean;
+  /** 법적 구매 칩(제도별 상품 수). 세모에 아직 없거나 0건이면 탭을 감춘다 */
+  mandatory?: MandatoryProgramIndex | null;
 }
 
 /** 한 번에 받는 상품 수 */
 const PAGE_SIZE = 120;
 const ALL = "전체";
 const OTHER = "기타";
+/** 대분류 탭 하나 — 세모 분류가 아니라 의무구매 제도로 거른다 */
+const MANDATORY = "법적 구매";
 
 export default function Shop({
   categories,
   initialItems = [],
   initialTotal = 0,
   loadFailed = false,
+  mandatory = null,
 }: ShopProps) {
   /**
    * 랜딩 검색이 `?q=` 로 실어 보낸 질의를 **첫 상태로만** 읽는다(구독하지 않는다).
@@ -51,6 +57,18 @@ export default function Shop({
    */
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q")?.trim() ?? "";
+
+  /** 법적 구매 칩 — 상품이 있는 제도만. 이름 → 코드 */
+  const programChips = useMemo(
+    () => (mandatory?.programs ?? []).filter(program => program.itemCount > 0),
+    [mandatory],
+  );
+  const hasMandatory = programChips.length > 0;
+  /** `?program=women`(또는 any) 로 열면 그 칩으로 바로 들어간다 — 메뉴 «법적 구매» 링크 */
+  const initialProgram = searchParams.get("program")?.trim() ?? "";
+  const initialProgramLabel =
+    programChips.find(program => program.code === initialProgram)?.label ?? ALL;
+  const opensMandatory = hasMandatory && Boolean(initialProgram);
 
   const groups = useMemo(() => categories ?? [], [categories]);
 
@@ -61,15 +79,18 @@ export default function Shop({
   const [bookmarksOnly, setBookmarksOnly] = useState(false);
 
   /** 뎁스1 — 세모 최상단 분류. `전체` 면 필터를 걸지 않는다 */
-  const [activeRoot, setActiveRoot] = useState<MajorCategory>(ALL);
+  const [activeRoot, setActiveRoot] = useState<MajorCategory>(opensMandatory ? MANDATORY : ALL);
   /** 뎁스2 — 고른 대분류의 소분류. 대분류가 `전체` 일 때는 칩이 곧 대분류다 */
-  const [activeLeaf, setActiveLeaf] = useState(ALL);
+  const [activeLeaf, setActiveLeaf] = useState(opensMandatory ? initialProgramLabel : ALL);
 
   const rootNames = useMemo(
     () => groups.map(group => group.rootCategoryName?.trim() || OTHER),
     [groups],
   );
-  const majorCategories = useMemo(() => [ALL, ...rootNames], [rootNames]);
+  const majorCategories = useMemo(
+    () => [ALL, ...(hasMandatory ? [MANDATORY] : []), ...rootNames],
+    [rootNames, hasMandatory],
+  );
 
   const activeGroup = useMemo(
     () => groups.find(group => (group.rootCategoryName?.trim() || OTHER) === activeRoot),
@@ -84,10 +105,11 @@ export default function Shop({
    */
   const leafCategories = useMemo(() => {
     if (activeRoot === ALL) return rootNames;
+    if (activeRoot === MANDATORY) return programChips.map(program => program.label);
     return (activeGroup?.children ?? [])
       .map(child => child.categoryName?.trim() || "")
       .filter(Boolean);
-  }, [activeRoot, rootNames, activeGroup]);
+  }, [activeRoot, rootNames, activeGroup, programChips]);
 
   const [items, setItems] = useState<Product[]>(initialItems);
   const [total, setTotal] = useState(initialTotal);
@@ -135,7 +157,11 @@ export default function Shop({
                 )
               : undefined;
 
-          if (leaf?.categoryId) params.set("categoryId", leaf.categoryId);
+          if (activeRoot === MANDATORY) {
+            // 칩을 안 골랐으면 «제도 하나라도 해당» 전체
+            const program = programChips.find(chip => chip.label === activeLeaf);
+            params.set("program", program?.code ?? ANY_PROGRAM);
+          } else if (leaf?.categoryId) params.set("categoryId", leaf.categoryId);
           else if (activeGroup?.rootCategoryId)
             params.set("rootCategoryId", activeGroup.rootCategoryId);
 
@@ -160,7 +186,7 @@ export default function Shop({
         }
       }
     },
-    [bookmarksOnly, searchQuery, sortOrder, activeRoot, activeLeaf, activeGroup, reactionsEnabled],
+    [bookmarksOnly, searchQuery, sortOrder, activeRoot, activeLeaf, activeGroup, reactionsEnabled, programChips],
   );
 
   /**
@@ -208,6 +234,14 @@ export default function Shop({
             activeMajorCategory={activeRoot}
             onMajorCategoryChange={changeMajorCategory}
           />
+
+          {activeRoot === MANDATORY && (
+            <p className="bg-light-soft text-muted-strong mb-4 rounded-lg px-4 py-3 text-sm leading-relaxed">
+              업체 인증(여성기업·장애인기업·창업기업·사회적기업·중증장애인생산품 등)은 <b>인증 업체에게 사야</b> 실적으로
+              인정됩니다. 상품 상세의 판매처 표에서 배지가 붙은 판매처를 고르세요. 기술개발·녹색·혁신제품은 품명·규격에
+              인증 표시가 있는 상품입니다.
+            </p>
+          )}
 
           <ProductGrid
             products={items}
