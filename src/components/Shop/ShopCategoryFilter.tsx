@@ -53,11 +53,14 @@ const MAJOR_CATEGORY_ICONS: Record<string, CategoryIconVariant> = {
   "취미/레저/계절": "palette",
   "모바일쿠폰": "mail",
   "선장품": "box",
+  "법적 구매": "shield",
   "기타": "box",
 };
 
 function iconForCategory(category: string): CategoryIconVariant {
   if (category === "전체") return "grid";
+  // 법적 구매 칩(의무구매 제도 이름)
+  if (/장애인|생산품|표준사업장|여성기업|사회적기업|창업기업|중소기업|기술개발제품|녹색제품|혁신제품/.test(category)) return "shield";
 
   const major = MAJOR_CATEGORY_ICONS[category];
   if (major) return major;

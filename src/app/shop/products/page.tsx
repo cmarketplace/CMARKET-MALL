@@ -3,12 +3,14 @@ import { Suspense } from "react";
 import Shop from "@/components/Shop/Shop";
 import type { Product } from "@/components/Shop/product.data";
 import {
+  fetchMandatoryPrograms,
   fetchStorefrontCategories,
   fetchStorefrontPage,
   maskProducts,
   SemoFeedError,
   type StorefrontCategoryGroup,
 } from "@/lib/catalog";
+import type { MandatoryProgramIndex } from "@/lib/mandatory";
 import { attachSocialProof } from "@/lib/reactions-server";
 import { getShopMember } from "@/lib/shop-member";
 
@@ -17,6 +19,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ShopPage() {
   let categories: StorefrontCategoryGroup[] | null = null;
+  let mandatory: MandatoryProgramIndex | null = null;
   let initialItems: Product[] = [];
   let initialTotal = 0;
   let loadFailed = false;
@@ -26,12 +29,15 @@ export default async function ShopPage() {
   try {
     // 화면은 «전체» 로 열린다. 그 칸은 분류를 걸지 않은 목록이라 여기서도 필터 없이
     // 첫 쪽을 그린다 — 조건이 다르면 브라우저가 첫 렌더 직후 다시 불러 같은 화면을 두 번 그린다.
-    const [index, page, member] = await Promise.all([
+    const [index, page, member, programs] = await Promise.all([
       fetchStorefrontCategories(),
       fetchStorefrontPage({ limit: 120 }),
       getShopMember(),
+      // 법적 구매 칩은 덤이다 — 이 조회가 실패해도 목록은 그린다(탭만 감춘다)
+      fetchMandatoryPrograms().catch(() => null),
     ]);
     categories = index;
+    mandatory = programs;
     // 반응 스위치가 꺼져 있으면 받은 그대로 돌려준다(배지 없음).
     initialItems = await attachSocialProof(maskProducts(page.items, member?.tier ?? null), member);
     initialTotal = page.total;
@@ -57,6 +63,7 @@ export default async function ShopPage() {
         initialItems={initialItems}
         initialTotal={initialTotal}
         loadFailed={loadFailed}
+        mandatory={mandatory}
       />
     </Suspense>
   );

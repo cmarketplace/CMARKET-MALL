@@ -19,6 +19,8 @@ interface ShopNavProps {
 const SHOP_LINKS: { href: string; label: string; match: (pathname: string) => boolean }[] = [
   { href: '/shop', label: '홈', match: pathname => pathname === '/shop' },
   { href: '/shop/products', label: '전체 상품', match: pathname => pathname.startsWith('/shop/products') },
+  // 의무구매 제도별 상품(법적 구매) — 상품 목록의 «법적 구매» 탭으로 바로 연다
+  { href: '/shop/products?program=any', label: '법적 구매', match: () => false },
   { href: '/shop#subscribe', label: '정기구독', match: () => false },
   { href: '/shop/services', label: '사무실 관리', match: pathname => pathname.startsWith('/shop/services') },
   { href: '/shop/group-buy', label: '공동구매', match: pathname => pathname.startsWith('/shop/group-buy') },
