@@ -1,5 +1,6 @@
 import { TENANT } from "@/config/tenant";
 import { productImage } from "@/lib/product-image";
+import { specLabel } from "@/lib/product-spec";
 import type {
   CatalogOffer,
   MarketBenchmark,
@@ -180,6 +181,8 @@ function toProduct(row: StorefrontItem): Product {
     spec1: row.spec1?.trim() ?? "",
     spec2: row.spec2?.trim() ?? "",
     spec3: row.spec3?.trim() ?? "",
+    // CAS 번호는 따로 «CAS · …» 줄로 나가므로 규격 줄에서는 뺀다
+    specLabel: specLabel(row.name, row.spec1, isCas ? null : row.spec2, row.spec3),
     features: [...TENANT.productBadges],
     // 값이 안 내려오면 «한 곳» 으로 본다. 0 으로 두면 화면이 «파는 곳이 없다» 로 읽힌다.
     offerCount: Math.max(Number(row.offerCount) || 1, 1),

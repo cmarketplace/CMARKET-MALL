@@ -81,6 +81,11 @@ export interface Product {
   spec1: string;
   spec2: string;
   spec3: string;
+  /**
+   * 카드에 보일 규격 한 줄(이름에 이미 있는 규격은 뺌, `product-spec.ts`).
+   * 선택 필드인 이유: 장바구니가 localStorage 에 상품을 통째로 저장해 이 필드 전의 줄이 남아 있다.
+   */
+  specLabel?: string;
   features: string[];
   /**
    * 이 상품을 대는 곳의 수.

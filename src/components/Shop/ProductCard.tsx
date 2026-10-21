@@ -133,6 +133,13 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         <h3 className="text-text mt-1.5 line-clamp-2 text-sm leading-[1.55] font-semibold sm:text-[15px]">{product.name}</h3>
 
+        {/* 이름이 같고 규격만 다른 상품이 많다 — 규격이 없으면 같은 상품이 반복되는 것처럼 보인다 */}
+        {product.specLabel && (
+          <p className="text-muted mt-1 truncate text-xs" title={product.specLabel}>
+            규격 · {product.specLabel}
+          </p>
+        )}
+
         {/* 세모 품목엔 CAS·품번이 없는 것도 많다. 비면 «·» 만 덩그러니 남으므로 줄째 뺀다. */}
         {product.code && (
           <p className="text-muted mt-1.5 truncate text-xs">
