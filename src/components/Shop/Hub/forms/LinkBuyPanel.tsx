@@ -8,6 +8,7 @@ import { useShop } from '@/app/providers/ShopProvider'
 import type { Product } from '@/components/Shop/product.data'
 import { quoteLinkPrice } from '@/config/link-errand'
 import { LINK_SHOPS } from '@/lib/link-shops'
+import { looksLikePage, preparePastedPage, type PastedPagePayload } from '@/lib/paste-page'
 import {
   PRICE_METHOD_LABEL,
   readAtLabel,
@@ -37,6 +38,8 @@ type Phase =
 export default function LinkBuyPanel({ initialText, initialQuantity }: { initialText: string; initialQuantity: string }) {
   const { addToCart } = useShop()
   const [text, setText] = useState(initialText)
+  // 상품 페이지 통째(Ctrl+A → Ctrl+C → Ctrl+V) — 막힌 쇼핑몰도 손님 브라우저가 연 내용으로 읽는다
+  const [pasted, setPasted] = useState<PastedPagePayload | null>(null)
   const [quantity, setQuantity] = useState(initialQuantity || '1')
   const [fill, setFill] = useState<{ name: string; price: string; shipping: string }>({ name: '', price: '', shipping: '' })
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' })
@@ -46,11 +49,11 @@ export default function LinkBuyPanel({ initialText, initialQuantity }: { initial
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastKey = useRef<string>('')
   // 미뤄 둔 불러오기가 «그때의» 수량·보완 값이 아니라 지금 값을 쓰게(붙여 넣고 바로 수량을 바꾸는 경우)
-  const latest = useRef({ quantity: 1, fill })
+  const latest = useRef<{ quantity: number; fill: typeof fill; pasted: PastedPagePayload | null }>({ quantity: 1, fill, pasted: null })
 
   const qty = Math.max(1, Number(quantity) || 1)
   useEffect(() => {
-    latest.current = { quantity: qty, fill }
+    latest.current = { quantity: qty, fill, pasted }
   })
 
   const customer = (): LinkItemCustomerFill | undefined => {
@@ -63,13 +66,19 @@ export default function LinkBuyPanel({ initialText, initialQuantity }: { initial
   }
 
   // 붙여 넣은 직후에는 아직 상태가 갱신 전이라, 방금 받은 글을 직접 넘긴다(`next`).
-  const load = async (force = false, next?: string) => {
+  const requestBody = (target: string, page: PastedPagePayload | null, quantityValue: number) =>
+    page
+      ? { text: target, quantity: quantityValue, customer: customer(), page: { html: page.html, text: page.text } }
+      : { text: target, quantity: quantityValue, customer: customer() }
+
+  const load = async (force = false, next?: string, nextPage?: PastedPagePayload | null) => {
     const target = next ?? text
-    if (!/https?:\/\//i.test(target)) {
+    const page = nextPage === undefined ? latest.current.pasted : nextPage
+    if (!page && !/https?:\/\//i.test(target)) {
       setPhase({ kind: 'idle' })
       return
     }
-    const body = { text: target, quantity: latest.current.quantity, customer: customer() }
+    const body = requestBody(page ? '' : target, page, latest.current.quantity)
     const key = JSON.stringify(body)
     if (!force && key === lastKey.current) return
     lastKey.current = key
@@ -102,7 +111,33 @@ export default function LinkBuyPanel({ initialText, initialQuantity }: { initial
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  /**
+   * 붙여넣기 — 링크(또는 공유 글)면 지금처럼 주소로, 페이지 통째면 정리해서(스크립트·스타일 제거, 크기 상한) 그 내용으로 읽는다.
+   */
+  const onPaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const html = event.clipboardData.getData('text/html')
+    const plain = event.clipboardData.getData('text/plain')
+    if (!looksLikePage(html, plain)) return
+    event.preventDefault()
+    const prepared = preparePastedPage(html, plain)
+    if ('error' in prepared) {
+      setPhase({ kind: 'error', message: prepared.error })
+      return
+    }
+    if (timer.current) clearTimeout(timer.current)
+    setPasted(prepared)
+    setText('')
+    void load(true, '', prepared)
+  }
+
+  const clearPasted = () => {
+    setPasted(null)
+    setPhase({ kind: 'idle' })
+    lastKey.current = ''
+  }
+
   const onTextChange = (value: string) => {
+    if (pasted) setPasted(null)
     setText(value)
     if (timer.current) clearTimeout(timer.current)
     if (!/https?:\/\//i.test(value)) return
@@ -116,7 +151,7 @@ export default function LinkBuyPanel({ initialText, initialQuantity }: { initial
       const response = await fetch('/api/shop/link-items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, quantity: qty, customer: customer() }),
+        body: JSON.stringify(requestBody(pasted ? '' : text, pasted, qty)),
         cache: 'no-store',
       })
       const payload = (await response.json().catch(() => null)) as { product?: Product; offerId?: string; message?: string } | null
@@ -159,10 +194,21 @@ export default function LinkBuyPanel({ initialText, initialQuantity }: { initial
             <textarea
               value={text}
               onChange={event => onTextChange(event.target.value)}
+              onPaste={onPaste}
               rows={2}
-              placeholder="https://www.11st.co.kr/products/..."
+              placeholder={pasted ? '' : 'https://www.11st.co.kr/products/... 또는 상품 페이지 전체를 붙여 넣기'}
               className={`${inputClass} pl-9`}
             />
+            {pasted && (
+              <span className="bg-blue-tint text-muted-strong absolute inset-x-9 top-2 flex items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-xs">
+                <span className="truncate">
+                  붙여 넣은 상품 페이지 · 글 {won(pasted.chars)}자 — 이 내용으로 읽어요
+                </span>
+                <button type="button" onClick={clearPasted} className="text-primary shrink-0 font-semibold hover:underline">
+                  지우기
+                </button>
+              </span>
+            )}
           </span>
         </Field>
         <Field label="수량">
@@ -174,8 +220,11 @@ export default function LinkBuyPanel({ initialText, initialQuantity }: { initial
           />
         </Field>
       </div>
-      <p className="text-muted -mt-3 text-xs">
+      <p className="text-muted -mt-3 text-xs leading-5">
         읽을 수 있는 곳: {LINK_SHOPS.map(entry => entry.name).join(' · ')} — 사진·제품명·규격·판매가를 읽어 세모 물품으로 등록하고 바로 살 수 있게 합니다
+        <br />
+        <strong className="text-muted-strong font-semibold">열리지 않는 쇼핑몰은 상품 페이지에서 Ctrl+A, Ctrl+C 한 뒤 여기에 붙여 넣으세요</strong>
+        (맥은 ⌘A, ⌘C · 설치 없이 지금 보고 있는 페이지 내용으로 읽어요)
       </p>
 
       {phase.kind === 'loading' && (
@@ -213,7 +262,16 @@ export default function LinkBuyPanel({ initialText, initialQuantity }: { initial
                 {product.imageUrl && (
                   // 쇼핑몰 원본 사진 — 담으면 세모 저장소 사본으로 바뀐다. next/image 원격 목록에 넣지 않으려고 img 를 쓴다.
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={product.imageUrl} alt="" referrerPolicy="no-referrer" className="h-full w-full bg-white object-contain" />
+                  <img
+                    src={product.imageUrl}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    // 쇼핑몰 CDN 이 바깥 표시를 막으면 깨진 그림 대신 빈 칸(담을 때 세모가 사본을 다시 받아 본다)
+                    onError={event => {
+                      event.currentTarget.style.visibility = 'hidden'
+                    }}
+                    className="h-full w-full bg-white object-contain"
+                  />
                 )}
               </div>
               <div className="min-w-0 flex-1">
@@ -222,7 +280,8 @@ export default function LinkBuyPanel({ initialText, initialQuantity }: { initial
                   <p className="text-text mt-1.5 line-clamp-2 font-semibold">{product.name}</p>
                 ) : (
                   <p className="text-text mt-1.5 text-sm font-semibold">
-                    {product.shopName}가 상품 정보를 막아 읽지 못했어요 — 제품명만 적어 주세요
+                    {product.shopName}가 서버 접속을 막아 읽지 못했어요 — 상품 페이지에서 Ctrl+A, Ctrl+C 한 뒤 위 칸에 붙여 넣으면 바로
+                    읽어요(또는 제품명만 적어 주세요)
                   </p>
                 )}
                 <p className="text-muted mt-1 text-xs">
@@ -277,8 +336,10 @@ export default function LinkBuyPanel({ initialText, initialQuantity }: { initial
                   <li>
                     인터넷 판매가 <strong className="text-text tabular-nums">{won(price.linkPrice)}원</strong>
                     {' '}({product.shopName}
-                    {price.readAt ? ` · ${readAtLabel(price.readAt)} 기준` : ''}
-                    {price.priceMethod ? ` · ${PRICE_METHOD_LABEL[price.priceMethod] ?? '읽은 값'}` : ''})
+                    {price.priceMethod === 'pasted'
+                      ? ` · 손님이 붙여 넣은 페이지 기준${price.readAt ? ` ${readAtLabel(price.readAt)}` : ''}`
+                      : `${price.readAt ? ` · ${readAtLabel(price.readAt)} 기준` : ''}${price.priceMethod ? ` · ${PRICE_METHOD_LABEL[price.priceMethod] ?? '읽은 값'}` : ''}`}
+                    )
                   </li>
                   {price.shipping > 0 && <li>+ 배송비 {won(price.shipping)}원(수량으로 나눔)</li>}
                   <li>
@@ -293,6 +354,12 @@ export default function LinkBuyPanel({ initialText, initialQuantity }: { initial
                 {price.priceMethod === 'customer' && (
                   <p className="mt-2 rounded-lg bg-blue-tint px-3 py-2 text-xs leading-5 text-muted-strong">
                     직접 적은 가격이에요 — 씨마켓이 구매 전에 쇼핑몰 실제 가격을 확인하고, 다르면 주문 전에 연락드립니다.
+                  </p>
+                )}
+                {price.priceMethod === 'pasted' && (
+                  <p className="mt-2 rounded-lg bg-blue-tint px-3 py-2 text-xs leading-5 text-muted-strong">
+                    붙여 넣은 페이지에서 읽은 가격이에요(쿠폰·카드할인·멤버십가는 빼고 누구나 사는 판매가). 씨마켓이 구매 전에 쇼핑몰
+                    실제 가격을 확인하고, 다르면 주문 전에 연락드립니다.
                   </p>
                 )}
               </div>

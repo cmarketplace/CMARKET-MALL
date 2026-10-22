@@ -13,10 +13,12 @@ export interface LinkItemCustomerFill {
 }
 
 export interface LinkItemInput {
-  /** 상품 주소 또는 쇼핑몰 앱 «공유하기» 글 그대로 */
+  /** 상품 주소 또는 쇼핑몰 앱 «공유하기» 글 그대로(붙여넣은 페이지면 비어도 된다) */
   text: string
   quantity: number
   customer?: LinkItemCustomerFill
+  /** 상품 페이지 통째(Ctrl+A → Ctrl+C) — 스크립트·스타일을 지운 정리본(`paste-page.ts`) */
+  page?: { html: string | null; text: string | null }
 }
 
 export interface LinkItemProduct {
@@ -160,5 +162,6 @@ export const PRICE_METHOD_LABEL: Record<string, string> = {
   jsonld: '쇼핑몰 상품 정보',
   meta: '쇼핑몰 상품 정보',
   naver_api: '네이버 쇼핑 검색',
+  pasted: '손님이 붙여 넣은 페이지',
   customer: '직접 적은 가격',
 }

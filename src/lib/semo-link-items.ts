@@ -269,7 +269,57 @@ function stubPriceView(linkPrice: number | null, shipping: number | null, quanti
   }
 }
 
+/** 스텁 전용 — 붙여넣은 페이지에서 쇼핑몰·이름·첫 판매가만 거칠게(정본 규칙은 세모 `link-paste.rules.ts`) */
+function stubReadPasted(input: LinkItemInput): LinkItemProduct {
+  const page = input.page ?? { html: null, text: null }
+  const plain = page.text ?? (page.html ?? '').replace(/<[^>]+>/g, '\n')
+  const lines = plain.split('\n').map(line => line.trim()).filter(Boolean)
+  const cues: [string, RegExp][] = [
+    ['쿠팡', /쿠팡|coupang/i],
+    ['G마켓', /G마켓|gmarket/i],
+    ['옥션', /옥션|auction/i],
+    ['SSG닷컴', /SSG\.COM|ssg\.com/i],
+    ['네이버쇼핑', /스마트스토어|smartstore/i],
+  ]
+  const shopName = cues.find(([, re]) => re.test(plain))?.[0]
+  if (!shopName) throw new LinkItemsError(422, 'LINK_ITEM_PASTE_SHOP_UNKNOWN', '어느 쇼핑몰 페이지인지 알 수 없습니다.')
+  const priceLine = lines.findIndex(line => /\d{1,3}(,\d{3})+\s*원/.test(line) && !/쿠폰|카드|와우|적립|최대/.test(line))
+  const name =
+    input.customer?.name ??
+    lines
+      .slice(Math.max(0, priceLine - 10), Math.max(0, priceLine))
+      .filter(line => line.length >= 8 && !/로그인|상품평|리뷰|판매자|>|%/.test(line))
+      .sort((a, b) => b.length - a.length)[0] ??
+    null
+  const prices = (lines[priceLine] ?? '').match(/\d{1,3}(?:,\d{3})+(?=\s*원)/g) ?? []
+  const next = (lines[priceLine + 1] ?? '').match(/^\d{1,3}(?:,\d{3})+(?=\s*원)/)?.[0]
+  const values = [...prices, ...(next ? [next] : [])].map(v => Number(v.replace(/,/g, '')))
+  const price = values.length ? Math.min(...values) : null
+  return {
+    url: `pasted:${shopName}`,
+    canonicalUrl: `pasted:${shopName}:${createHash('sha256').update(name ?? '').digest('hex').slice(0, 8)}`,
+    shopKey: shopName,
+    shopName,
+    name,
+    brand: null,
+    manufacturer: null,
+    model: null,
+    specText: null,
+    imageUrl: null,
+    price,
+    listPrice: null,
+    shipping: /무료\s?배송|배송비\s*무료/.test(plain) ? 0 : null,
+    priceMethod: price != null ? 'pasted' : null,
+    nameMethod: name ? 'pasted' : null,
+    status: name && price != null ? 'partial' : 'failed',
+    httpStatus: null,
+    missing: [!name && 'name', price == null && 'price', 'image'].filter((x): x is string => Boolean(x)),
+    readAt: new Date().toISOString(),
+  }
+}
+
 async function stubRead(input: LinkItemInput): Promise<LinkItemProduct> {
+  if (input.page) return stubReadPasted(input)
   const url = extractUrl(input.text)
   const shop = url ? shopOf(url) : null
   if (!url || !shop) {

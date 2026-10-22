@@ -58,7 +58,10 @@ export default function CartItem({ line, mode, selected, onToggleSelect }: CartI
         {offer.link && (
           <p className="text-muted mt-0.5 truncate text-[11px]">
             {offer.link.shopName} {won(offer.link.linkPrice)}원
-            {offer.link.readAt ? ` (${readAtLabel(offer.link.readAt)} 기준)` : ""} + 심부름값 {won(offer.link.errandFee)}원을 수량으로 나눔
+            {offer.link.readAt
+              ? ` (${offer.link.priceMethod === "pasted" ? "붙여 넣은 페이지 " : ""}${readAtLabel(offer.link.readAt)} 기준)`
+              : ""}{" "}
+            + 심부름값 {won(offer.link.errandFee)}원을 수량으로 나눔
           </p>
         )}
       </div>
