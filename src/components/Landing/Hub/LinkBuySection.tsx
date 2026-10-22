@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ClipboardPaste, FileText, Link2, ScanSearch } from 'lucide-react'
 
-import { ERRAND_FEE_PER_REQUEST, estimateErrand } from '@/config/link-errand'
+import { CARD_FEE_RATE, ERRAND_FEE_PER_REQUEST, estimateErrand } from '@/config/link-errand'
 import { extractUrl, LINK_SHOPS } from '@/lib/link-shops'
 
 import { RevealCard, RevealSection } from '../SectionReveal'
@@ -103,7 +103,7 @@ export default function LinkBuySection() {
                 </strong>
               </p>
               <p className="text-muted mt-1 text-xs leading-5">
-                심부름값 {won(ERRAND_FEE_PER_REQUEST)}원(부가세 포함)은 견적서의 제품 단가에 포함해 적습니다. 카드 결제는 카드수수료가 별도로 더해집니다.
+                심부름값 {won(ERRAND_FEE_PER_REQUEST)}원(부가세 포함)은 견적서의 제품 단가에 포함해 적습니다. 카드 결제는 카드수수료{CARD_FEE_RATE !== null ? `(${Number((CARD_FEE_RATE * 100).toFixed(2))}%)` : ''}가 별도로 더해집니다.
                 주문 시점 판매가 기준이며 쿠폰·카드할인·멤버십가는 적용되지 않고, 반품 배송비는 실비입니다.
               </p>
             </div>
