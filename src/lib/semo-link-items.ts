@@ -323,7 +323,7 @@ async function stubRead(input: LinkItemInput): Promise<LinkItemProduct> {
   const url = extractUrl(input.text)
   const shop = url ? shopOf(url) : null
   if (!url || !shop) {
-    throw new LinkItemsError(400, 'LINK_ITEM_SHOP_NOT_ALLOWED', '쿠팡·네이버쇼핑·11번가·G마켓·옥션·SSG닷컴·롯데ON·다나와·오피스디포 상품 주소만 담을 수 있습니다.')
+    throw new LinkItemsError(400, 'LINK_ITEM_SHOP_NOT_ALLOWED', '쿠팡·네이버쇼핑·11번가·G마켓·옥션·SSG닷컴·롯데ON·다나와·오피스디포·나비엠알오 상품 주소만 담을 수 있습니다.')
   }
   const preview = await fetchLinkPreview(url).catch(() => null)
   const hint = input.text.replace(url, ' ').replace(/\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').trim()
