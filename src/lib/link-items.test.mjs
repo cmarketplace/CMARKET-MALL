@@ -70,3 +70,12 @@ test("읽은 시각은 한국 시간으로", () => {
   assert.equal(readAtLabel("2026-10-21T15:20:00Z"), "10월 22일 0시 20분");
   assert.equal(readAtLabel(null), "");
 });
+
+test("나비엠알오 주소도 링크로 받는다(옵션 주소·묶음 주소·모바일)", async () => {
+  const { shopOf } = await import("./link-shops.ts");
+  assert.equal(shopOf("https://www.navimro.com/p/K93222586/")?.name, "나비엠알오");
+  assert.equal(shopOf("https://m.navimro.com/g/1800570/")?.name, "나비엠알오");
+  assert.equal(shopOf("https://navimro.com.evil.example/p/K1/"), null);
+  const parsed = parseLinkItemInput({ text: "https://www.navimro.com/g/1800570/", quantity: 2 });
+  assert.equal(parsed.ok, true);
+});

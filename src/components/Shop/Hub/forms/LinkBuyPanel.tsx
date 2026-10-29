@@ -144,6 +144,14 @@ export default function LinkBuyPanel({ initialText, initialQuantity }: { initial
     timer.current = setTimeout(() => void load(false, value), 600)
   }
 
+  /** 옵션 하나를 고르면 그 옵션 주소로 다시 읽는다 */
+  const pickOption = (url: string) => {
+    if (timer.current) clearTimeout(timer.current)
+    setPasted(null)
+    setText(url)
+    void load(true, url, null)
+  }
+
   const add = async () => {
     setAdding(true)
     setAddError(null)
@@ -182,7 +190,10 @@ export default function LinkBuyPanel({ initialText, initialQuantity }: { initial
   const needsPrice = Boolean(preview?.blockers.includes('price'))
   const sellerMissing = Boolean(preview?.blockers.includes('seller'))
   const notProduct = Boolean(preview?.blockers.includes('not_product'))
-  const canAdd = Boolean(preview && price && !needsName && !needsPrice && !sellerMissing && !notProduct)
+  // 옵션이 여럿인 주소(나비엠알오 묶음) — 어느 옵션인지 골라야 가격이 정해진다
+  const needsOption = Boolean(preview?.blockers.includes('option'))
+  const options = product?.options ?? []
+  const canAdd = Boolean(preview && price && !needsName && !needsPrice && !needsOption && !sellerMissing && !notProduct)
   const cheaper = preview?.cheaperInMall ?? null
 
   return (
@@ -289,6 +300,28 @@ export default function LinkBuyPanel({ initialText, initialQuantity }: { initial
                 </p>
               </div>
             </div>
+
+            {needsOption && options.length > 0 && (
+              <div className="mt-4">
+                <p className="text-text text-sm font-semibold">옵션이 {won(options.length)}개 있어요 — 살 옵션을 골라 주세요</p>
+                <div className="mt-2 grid max-h-72 gap-2 overflow-y-auto sm:grid-cols-2">
+                  {options.map(option => (
+                    <button
+                      key={option.code}
+                      type="button"
+                      onClick={() => pickOption(option.url)}
+                      className="border-border hover:border-primary rounded-lg border px-3 py-2 text-left text-sm transition-colors"
+                    >
+                      <span className="text-text block font-semibold">{option.label}</span>
+                      <span className="text-muted block text-xs tabular-nums">
+                        {option.code}
+                        {option.price != null ? ` · ${won(option.price)}원(부가세 포함)` : ''}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {(needsName || needsPrice) && (
               <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_9rem_8rem_auto] sm:items-end">

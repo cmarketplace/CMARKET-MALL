@@ -21,6 +21,24 @@ export interface LinkItemInput {
   page?: { html: string | null; text: string | null }
 }
 
+/** 쇼핑몰 표의 칸 한 개(나비엠알오 옵션 표 — 규격·내용량·원산지·모델명·상품코드…) */
+export interface LinkItemAttribute {
+  name: string
+  value: string
+}
+
+/** 한 주소에 옵션이 여럿일 때(나비엠알오 묶음 주소) — 손님이 고르면 그 `url` 로 다시 미리 본다 */
+export interface LinkItemOption {
+  /** 쇼핑몰 상품코드(K…) */
+  code: string
+  url: string
+  /** 옵션끼리 다른 칸만 이은 이름(예: «검정 · 1PK(50EA)») */
+  label: string
+  /** 판매가(부가세 포함) */
+  price: number | null
+  specText: string | null
+}
+
 export interface LinkItemProduct {
   url: string
   canonicalUrl: string
@@ -44,6 +62,10 @@ export interface LinkItemProduct {
   httpStatus: number | null
   missing: string[]
   readAt: string
+  /** 쇼핑몰 표의 칸 그대로 — 세모 #1660 부터(그 전 세모·스텁은 없음) */
+  attributes?: LinkItemAttribute[]
+  /** 옵션이 여럿인 주소면 옵션들 — 이때 blockers 에 'option' */
+  options?: LinkItemOption[]
 }
 
 export interface LinkItemPrice {
@@ -90,7 +112,7 @@ export interface LinkItemPreview {
   mallListings: LinkMallListing[]
   cheaperInMall: LinkMallListing | null
   price: LinkItemPrice | null
-  /** name·price·seller·not_product */
+  /** name·price·seller·not_product·option(옵션이 여럿인 주소 — 하나를 골라야 함) */
   blockers: string[]
   searchApi: boolean
 }
