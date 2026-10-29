@@ -42,6 +42,8 @@ export interface CatalogOffer {
   shippingFee: number | null;
   /** 이 금액(공급가액) 이상이면 배송비 면제. null 이면 항상 부과(배송비가 있을 때). */
   freeShippingOver: number | null;
+  /** 이 판매처의 업체 단위 의무구매 제도. 선택 필드 — 장바구니에 남은 옛 줄 대비 */
+  programs?: string[];
   /**
    * «링크로 바로 사기» 오퍼면 가격 근거(인터넷 판매가·배송비·읽은 시각). 있으면 단가가 수량에 따라 다르다
    * (심부름값이 줄당 한 번 — `config/link-errand.ts` `quoteLinkPrice`). 선택 필드 — 옛 장바구니 줄에는 없다.
@@ -108,6 +110,8 @@ export interface Product {
    * 선택 필드인 이유: 장바구니가 localStorage 에 상품을 통째로 저장해 이 필드 전의 줄이 남아 있다.
    */
   specLabel?: string;
+  /** 의무구매 제도 코드(법적 구매, `lib/mandatory.ts`). 선택 필드 — 장바구니에 남은 옛 줄 대비 */
+  mandatoryPrograms?: string[];
   features: string[];
   /**
    * 이 상품을 대는 곳의 수.

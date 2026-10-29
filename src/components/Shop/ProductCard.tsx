@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Bookmark, Heart, ShoppingCart } from "lucide-react";
 
+import { cardBadges } from "@/lib/mandatory";
 import type { Product } from "./product.data";
 import GradeBadge from "./GradeBadge";
 import Price from "./Price";
@@ -137,6 +138,17 @@ export default function ProductCard({ product }: ProductCardProps) {
         {product.specLabel && (
           <p className="text-muted mt-1 truncate text-xs" title={product.specLabel}>
             규격 · {product.specLabel}
+          </p>
+        )}
+
+        {/* 법적 구매(의무구매) 제도 — 중소기업은 너무 흔해 카드에선 뺀다(lib/mandatory.ts) */}
+        {cardBadges(product.mandatoryPrograms).length > 0 && (
+          <p className="mt-1.5 flex flex-wrap gap-1">
+            {cardBadges(product.mandatoryPrograms).map(label => (
+              <span key={label} className="bg-light-soft text-primary rounded px-1.5 py-0.5 text-[11px] font-semibold">
+                {label}
+              </span>
+            ))}
           </p>
         )}
 

@@ -54,6 +54,8 @@ export async function GET(request: Request) {
       q: params.get("q") ?? undefined,
       categoryId: params.get("categoryId") ?? undefined,
       rootCategoryId: params.get("rootCategoryId") ?? undefined,
+      // 법적 구매 — 제도 코드 하나 또는 any. 모르는 값은 세모가 무시한다
+      program: params.get("program")?.trim() || undefined,
       sort: sortParam && SORTS.includes(sortParam) ? sortParam : undefined,
       limit: Math.min(Number(params.get("limit")) || 120, 500),
       offset: Math.max(Number(params.get("offset")) || 0, 0),

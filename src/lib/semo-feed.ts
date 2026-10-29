@@ -1,5 +1,6 @@
 import { TENANT } from "@/config/tenant";
 import { productImage } from "@/lib/product-image";
+import type { MandatoryProgramCount, MandatoryProgramIndex } from "@/lib/mandatory";
 import { specLabel } from "@/lib/product-spec";
 import type {
   CatalogOffer,
@@ -70,6 +71,8 @@ interface StorefrontItem {
   /** MD 큐레이션 순위·공공기관 주문 수. 세모가 붙여 주기 전에는 없다. */
   mdRank?: number | null;
   popularity?: number | null;
+  /** 의무구매 제도 코드(법적 구매). 세모가 붙여 주기 전에는 없다 */
+  mandatoryPrograms?: string[] | null;
 }
 
 /**
@@ -94,7 +97,12 @@ interface StorefrontOfferRow {
   directPurchase?: boolean | null;
   shippingFee?: number | null;
   freeShippingOver?: number | null;
+  /** 이 판매처(공급사)의 업체 단위 의무구매 제도 — 실적은 이 판매처에서 사야 인정된다 */
+  programs?: string[] | null;
 }
+
+const strings = (values: unknown): string[] =>
+  Array.isArray(values) ? values.filter((v): v is string => typeof v === "string") : [];
 
 const num = (value: unknown): number | null =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -118,6 +126,7 @@ function toCatalogOffer(row: StorefrontOfferRow): CatalogOffer {
     directPurchase: row.directPurchase !== false,
     shippingFee: num(row.shippingFee),
     freeShippingOver: num(row.freeShippingOver),
+    programs: strings(row.programs),
   };
 }
 
@@ -191,6 +200,7 @@ function toProduct(row: StorefrontItem): Product {
     benchmark: toBenchmark(row.benchmark),
     mdRank: num(row.mdRank),
     popularity: num(row.popularity),
+    mandatoryPrograms: strings(row.mandatoryPrograms),
   };
 }
 
@@ -325,6 +335,8 @@ export interface StorefrontQuery {
   q?: string;
   categoryId?: string;
   rootCategoryId?: string;
+  /** 법적 구매 — 제도 코드 하나, 또는 `any`(제도 하나라도 해당) */
+  program?: string;
   sort?: StorefrontSort;
   limit?: number;
   offset?: number;
@@ -349,6 +361,55 @@ export async function fetchStorefrontCategories(): Promise<
   return result?.groups ?? null;
 }
 
+/**
+ * 법적 구매 칩 — 제도별 상품 수. 세모에 이 경로가 아직 없으면(배포 순서) `null` 이고,
+ * 화면은 «법적 구매» 탭을 감춘다.
+ */
+export async function fetchMandatoryPrograms(): Promise<MandatoryProgramIndex | null> {
+  const { slug } = feedConfig();
+  const result = await callFeed<{ programs?: MandatoryProgramCount[]; total?: number }>(
+    `/external/storefronts/${encodeURIComponent(slug)}/mandatory-programs`,
+    {},
+    { allowNotFound: true },
+  );
+  if (!result?.programs) return null;
+  return {
+    programs: result.programs.filter(p => typeof p?.code === "string" && typeof p?.label === "string"),
+    total: typeof result.total === "number" ? result.total : 0,
+  };
+}
+
+/** 기관 맞춤 선반 한 줄(세모 `GET …/buyer-shelves`) */
+export interface StorefrontShelf {
+  /** org = 우리 기관, type = 비슷한 유형 기관 */
+  kind: "org" | "type";
+  label: string;
+  items: Product[];
+}
+
+/**
+ * 기관 맞춤 선반 — «우리 기관이 자주 산 품목» · «비슷한 유형 기관이 자주 산 품목».
+ *
+ * 씨마켓 발주 계정 id 를 서버 간 호출로만 넘긴다(브라우저로 내려가지 않는다). 세모는 원문을 저장하지 않고
+ * 해시로 찾는다. 묶음에 없는 계정이거나 세모에 경로가 아직 없으면 빈 배열 — 홈은 선반 없이 그린다.
+ */
+export async function fetchBuyerShelves(memberId: string): Promise<StorefrontShelf[]> {
+  const { slug } = feedConfig();
+  const result = await callFeed<{ shelves?: Array<{ kind?: string; label?: string; items?: StorefrontItem[] }> }>(
+    `/external/storefronts/${encodeURIComponent(slug)}/buyer-shelves`,
+    { memberId },
+    { allowNotFound: true },
+  );
+  return (result?.shelves ?? [])
+    .filter(shelf => (shelf.kind === "org" || shelf.kind === "type") && typeof shelf.label === "string")
+    .map(shelf => ({
+      kind: shelf.kind === "org" ? ("org" as const) : ("type" as const),
+      label: shelf.label ?? "",
+      items: (shelf.items ?? []).map(toProduct),
+    }))
+    .filter(shelf => shelf.items.length > 0);
+}
+
 /** 상품 한 쪽. 필터·정렬·건수는 서버가 한다 */
 export async function fetchStorefrontPage(
   query: StorefrontQuery = {},
@@ -360,6 +421,7 @@ export async function fetchStorefrontPage(
       q: query.q || undefined,
       categoryId: query.categoryId || undefined,
       rootCategoryId: query.rootCategoryId || undefined,
+      program: query.program || undefined,
       sort: query.sort && query.sort !== "recommended" ? query.sort : undefined,
       limit: query.limit ?? 120,
       offset: query.offset ?? 0,
