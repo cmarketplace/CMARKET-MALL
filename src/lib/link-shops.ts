@@ -21,6 +21,7 @@ export const LINK_SHOPS: readonly LinkShop[] = [
   { name: '롯데ON', domains: ['lotteon.com'] },
   { name: '다나와', domains: ['danawa.com'] },
   { name: '오피스디포', domains: ['officedepot.co.kr'] },
+  { name: '나비엠알오', domains: ['navimro.com'] },
 ]
 
 export function shopOf(rawUrl: string): LinkShop | null {

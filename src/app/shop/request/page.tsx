@@ -6,6 +6,7 @@ import { findMandatoryCategory } from '@/config/mandatory-purchase'
 import { findService } from '@/config/office-services'
 import { kstToday } from '@/config/seasons'
 import { extractUrl } from '@/lib/link-shops'
+import { linkBuyEnabled } from '@/config/link-buy'
 import { isRequestStub } from '@/lib/mall-requests'
 
 export const dynamic = 'force-dynamic'
@@ -42,6 +43,8 @@ export default async function ShopRequestPage({
           initialUrl={extractUrl(params.url ?? '') ?? ''}
           initialQuantity={/^\d{1,7}$/.test(params.qty ?? '') ? (params.qty as string) : ''}
           stub={isRequestStub()}
+          linkBuy={linkBuyEnabled()}
+          initialLinkText={(params.url ?? '').slice(0, 2000)}
         />
       </div>
     </main>

@@ -46,6 +46,8 @@ interface ShopContextValue {
    * 꺼져 있으면(기본) 지금 화면 그대로: 북마크(브라우저 저장)·배지 없음.
    */
   reactionsEnabled: boolean
+  /** 링크로 바로 사기 스위치(`SHOP_LINK_BUY`) — 켜지면 결제 직전에 링크 상품 가격을 다시 읽는다 */
+  linkBuyEnabled: boolean
 }
 
 const ShopContext = createContext<ShopContextValue | null>(null)
@@ -55,9 +57,11 @@ const noError = () => null
 export function ShopProvider({
   children,
   reactionsEnabled = false,
+  linkBuyEnabled = false,
 }: {
   children: React.ReactNode
   reactionsEnabled?: boolean
+  linkBuyEnabled?: boolean
 }) {
   // 장바구니·북마크 둘 다 새로고침과 다른 탭에 남아야 해서 localStorage 를 외부 스토어로
   // 구독한다. 자세한 이유는 src/lib/cart.ts, src/lib/bookmarks.ts 주석 참고.
@@ -101,6 +105,7 @@ export function ShopProvider({
         isBookmarked,
         toggleBookmark: reactionsEnabled ? productId => void toggleWish(productId) : toggleBookmarkId,
         reactionsEnabled,
+        linkBuyEnabled,
       }}
     >
       {children}

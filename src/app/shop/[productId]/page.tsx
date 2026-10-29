@@ -9,6 +9,7 @@ import ProductPurchase from "@/components/Shop/ProductDetail/ProductPurchase";
 import ProductDetailTabs from "@/components/Shop/ProductDetail/ProductDetailTabs";
 import ProductReactionBar from "@/components/Shop/ProductDetail/ProductReactionBar";
 import ProductReviews from "@/components/Shop/ProductDetail/ProductReviews";
+import { linkBuyEnabled } from "@/config/link-buy";
 import { reactionsEnabled } from "@/config/reactions";
 import {
   fetchProductWithOffers,
@@ -21,6 +22,7 @@ import {
 import { attachSocialProof } from "@/lib/reactions-server";
 import { semoRecordView } from "@/lib/semo-reactions";
 import { getShopMember } from "@/lib/shop-member";
+import { attachLinkBasis } from "@/lib/semo-link-items";
 
 interface ProductDetailPageProps {
   params: Promise<{ productId: string }>;
@@ -48,6 +50,8 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     return <FeedUnavailable />;
   }
   if (!loaded) notFound();
+  // «링크로 바로 사기» 상품이면 수량별 단가 근거를 오퍼에 붙인다(스위치가 꺼져 있으면 그대로).
+  if (linkBuyEnabled()) [loaded] = await attachLinkBasis([loaded]);
 
   const tier = member?.tier ?? null;
   // 반응 스위치(SHOP_REACTIONS)가 꺼져 있으면 아래 셋은 아무것도 하지 않는다 — 화면이 지금과 같다.

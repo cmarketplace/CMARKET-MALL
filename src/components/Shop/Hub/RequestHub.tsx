@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { HubHeader } from '../Requests/RequestKit'
 import { REQUEST_KINDS, type RequestKind } from './request-kinds'
 import KitForm from './forms/KitForm'
+import LinkBuyPanel from './forms/LinkBuyPanel'
 import LinkForm from './forms/LinkForm'
 import MandatoryForm from './forms/MandatoryForm'
 import SocialValueForm from './forms/SocialValueForm'
@@ -69,6 +70,18 @@ interface RequestHubProps {
   initialUrl: string
   initialQuantity: string
   stub: boolean
+  /** 링크로 바로 사기 스위치(`SHOP_LINK_BUY`) — 켜지면 «링크로 사기» 가 장바구니로 바로 담는 화면이 된다 */
+  linkBuy?: boolean
+  /** 붙여 넣은 글 그대로(공유 글의 제품명 힌트까지) — 바로 사기 화면용 */
+  initialLinkText?: string
+}
+
+/** 링크로 바로 사기가 켜졌을 때의 머리말 */
+const LINK_BUY_COPY = {
+  eyebrow: '인터넷에서 본 그 제품 · 링크만 붙여 넣으면',
+  title: '링크 하나로 사진·이름·규격·가격까지 — 바로 담아 사세요',
+  description:
+    '쿠팡·네이버·11번가·롯데ON 등 상품 링크를 붙여 넣으면 세모가 사진·제품명·규격·판매가를 읽어 판매 단가를 바로 정합니다. 단가 = (인터넷 판매가 × 수량 + 배송비 + 심부름값 2,000원) ÷ 수량, 카드 결제는 카드수수료 별도. 주문은 씨마켓 구매대행으로 장바구니에서 그대로 결제합니다.',
 }
 
 /**
@@ -78,7 +91,8 @@ interface RequestHubProps {
  * 탭 사이를 오가야 한다. 폼 상태는 탭을 옮기면 버려진다 — 종류가 다르면 칸이 다르다.
  */
 export default function RequestHub(props: RequestHubProps) {
-  const copy = KIND_COPY[props.kind]
+  const linkBuy = props.kind === 'link' && props.linkBuy === true
+  const copy = linkBuy ? { ...KIND_COPY.link, ...LINK_BUY_COPY } : KIND_COPY[props.kind]
 
   return (
     <div className="space-y-8">
@@ -99,7 +113,20 @@ export default function RequestHub(props: RequestHubProps) {
 
       <HubHeader eyebrow={copy.eyebrow} title={copy.title} description={copy.description} />
 
-      {props.kind === 'link' && (
+      {linkBuy && (
+        <>
+          <LinkBuyPanel key="link-buy" initialText={props.initialLinkText || props.initialUrl} initialQuantity={props.initialQuantity} />
+          <details className="border-border rounded-xl border p-4">
+            <summary className="text-text cursor-pointer text-sm font-semibold">
+              담당자에게 맡기기 — 옵션·대체품을 골라 달라거나 견적서부터 받고 싶을 때
+            </summary>
+            <div className="mt-4">
+              <LinkForm key="link" today={props.today} initialUrl={props.initialUrl} initialQuantity={props.initialQuantity} stub={props.stub} />
+            </div>
+          </details>
+        </>
+      )}
+      {props.kind === 'link' && !linkBuy && (
         <LinkForm key="link" today={props.today} initialUrl={props.initialUrl} initialQuantity={props.initialQuantity} stub={props.stub} />
       )}
       {props.kind === 'sourcing' && (
